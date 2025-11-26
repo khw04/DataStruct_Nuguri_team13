@@ -219,6 +219,21 @@ void move_player(char input) {
 
     on_ladder = (current_tile == 'H');
 
+    //사다리 이동(미셸)
+    if (on_ladder) {
+        // 위로 이동하기
+        if (input == 'w' && map[stage][player_y - 1][player_x] == ' ') {
+            player_y -= 1;
+            return;   
+        }
+
+        // 아래로 내려가기
+        if (input == 's' && map[stage][player_y + 1][player_x] == 'H') {
+            player_y += 1;
+            return;   
+        }
+    }
+
     switch (input) {
         case 'a': next_x--; break;
         case 'd': next_x++; break;
