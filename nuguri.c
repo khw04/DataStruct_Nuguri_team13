@@ -61,6 +61,7 @@ int main() {
     enable_raw_mode();
     load_maps();
     init_stage();
+    char prev_input = '\0';  // long press 처리를 위한 이전 입력 저장 (미셸)
 
     char c = '\0';
     int game_over = 0;
@@ -68,6 +69,7 @@ int main() {
     while (!game_over && stage < MAX_STAGES) {
         if (kbhit()) {
             c = getchar();
+            prev_input = c; // 새 입력을 prev_input에 저장 (미셸)
             if (c == 'q') {
                 game_over = 1;
                 continue;
@@ -80,9 +82,10 @@ int main() {
                     case 'C': c = 'd'; break; // Right
                     case 'D': c = 'a'; break; // Left
                 }
+                prev_input = c; // 방향키 변환된 값도 저장 (미셸)
             }
         } else {
-            c = '\0';
+            c = prev_input; //'\0'; => prev_input; 입력이 없어도 이전 값 유지/long press 가능 (미셸)
         }
 
         update_game(c);
