@@ -96,8 +96,8 @@ int main() {
         if(life <=0){
             game_over =1;
             printf("\x1b[2J\x1b[H");
-            printf("게임 오버");
-            printf("최종점수: %d\n",score);
+            printf("GAME OVER!\n");
+            printf("FINAL SCORE: %d\n",score);
         }
 
         if (map[stage][player_y][player_x] == 'E') {
@@ -160,6 +160,7 @@ void init_stage() {
     coin_count = 0;
     is_jumping = 0;
     velocity_y = 0;
+    life = MAX_LIFE; //스테이지 이동시 생명 개수 초기화(기능구현3)
 
     for (int y = 0; y < MAP_HEIGHT; y++) {
         for (int x = 0; x < MAP_WIDTH; x++) {
@@ -191,7 +192,7 @@ void respawn(){
 // 게임 화면 그리기
 void draw_game() {
     printf("\x1b[2J\x1b[H");
-    printf("Stage: %d | Score: %d | Lives: ", stage + 1, score); // 화면에 생명 표시 추가(기능구현3)
+    printf("Stage: %d | Score: %d | Life: ", stage + 1, score); // 화면에 생명 표시 추가(기능구현3)
     for (int i = 0; i < life; i++) {
         printf("♥ ");
     }
@@ -323,7 +324,7 @@ void check_collisions() {
         if (player_x == enemies[i].x && player_y == enemies[i].y) {
             life--; // 닿으면 생명 감소(기능구현3)
             score = (score > 50) ? score - 50 : 0;
-            if(life > 0){ //생명>0이먄 리스폰 함수 호출(기능구현3)
+            if(life > 0){ //생명>0이면 리스폰 함수 호출(기능구현3)
                 respawn();
             }
             return;
