@@ -64,10 +64,25 @@ int main() {
 
     char c = '\0';
     int game_over = 0;
+    int last_space = 0;   // 0 = 손 뗀 상태, 1 = 누르고 있는 상태 (미셸)
 
     while (!game_over && stage < MAX_STAGES) {
         if (kbhit()) {
             c = getchar();
+
+            if (c == ' ') {
+                if (last_space == 1) {
+                    c = '\0';      // 이미 누르고 있으면 무시
+                }
+                else {
+                    last_space = 1;   // 처음 누른 순간만 유효
+                }
+            }
+            else {
+                // 다른 키 누르면 space 상태 초기화
+                last_space = 0;
+            }
+
             if (c == 'q') {
                 game_over = 1;
                 continue;
@@ -75,13 +90,14 @@ int main() {
             if (c == '\x1b') {
                 getchar(); // '['
                 switch (getchar()) {
-                    case 'A': c = 'w'; break; // Up
-                    case 'B': c = 's'; break; // Down
-                    case 'C': c = 'd'; break; // Right
-                    case 'D': c = 'a'; break; // Left
+                case 'A': c = 'w'; break; // Up
+                case 'B': c = 's'; break; // Down
+                case 'C': c = 'd'; break; // Right
+                case 'D': c = 'a'; break; // Left
                 }
             }
-        } else {
+        }
+        else {
             c = '\0';
         }
 
@@ -94,7 +110,8 @@ int main() {
             score += 100;
             if (stage < MAX_STAGES) {
                 init_stage();
-            } else {
+            }
+            else {
                 game_over = 1;
                 printf("\x1b[2J\x1b[H");
                 printf("축하합니다! 모든 스테이지를 클리어했습니다!\n");
@@ -120,7 +137,7 @@ void enable_raw_mode() {
 
 // 맵 파일 로드
 void load_maps() {
-    FILE *file = fopen("map.txt", "r");
+    FILE* file = fopen("map.txt", "r");
     if (!file) {
         perror("map.txt 파일을 열 수 없습니다.");
         exit(1);
@@ -156,11 +173,13 @@ void init_stage() {
             if (cell == 'S') {
                 player_x = x;
                 player_y = y;
-            } else if (cell == 'X' && enemy_count < MAX_ENEMIES) {
-                enemies[enemy_count] = (Enemy){x, y, (rand() % 2) * 2 - 1};
+            }
+            else if (cell == 'X' && enemy_count < MAX_ENEMIES) {
+                enemies[enemy_count] = (Enemy){ x, y, (rand() % 2) * 2 - 1 };
                 enemy_count++;
-            } else if (cell == 'C' && coin_count < MAX_COINS) {
-                coins[coin_count++] = (Coin){x, y, 0};
+            }
+            else if (cell == 'C' && coin_count < MAX_COINS) {
+                coins[coin_count++] = (Coin){ x, y, 0 };
             }
         }
     }
@@ -173,17 +192,18 @@ void draw_game() {
     printf("조작: ← → (이동), ↑ ↓ (사다리), Space (점프), q (종료)\n");
 
     char display_map[MAP_HEIGHT][MAP_WIDTH + 1];
-    for(int y=0; y < MAP_HEIGHT; y++) {
-        for(int x=0; x < MAP_WIDTH; x++) {
+    for (int y = 0; y < MAP_HEIGHT; y++) {
+        for (int x = 0; x < MAP_WIDTH; x++) {
             char cell = map[stage][y][x];
             if (cell == 'S' || cell == 'X' || cell == 'C') {
                 display_map[y][x] = ' ';
-            } else {
+            }
+            else {
                 display_map[y][x] = cell;
             }
         }
     }
-    
+
     for (int i = 0; i < coin_count; i++) {
         if (!coins[i].collected) {
             display_map[coins[i].y][coins[i].x] = 'C';
@@ -197,7 +217,7 @@ void draw_game() {
     display_map[player_y][player_x] = 'P';
 
     for (int y = 0; y < MAP_HEIGHT; y++) {
-        for(int x=0; x< MAP_WIDTH; x++){
+        for (int x = 0; x < MAP_WIDTH; x++) {
             printf("%c", display_map[y][x]);
         }
         printf("\n");
@@ -220,51 +240,53 @@ void move_player(char input) {
     on_ladder = (current_tile == 'H');
 
     switch (input) {
-        case 'a': next_x--; break;
-        case 'd': next_x++; break;
-        case 'w': if (on_ladder) next_y--; break;
-        case 's': if (on_ladder && (player_y + 1 < MAP_HEIGHT) && map[stage][player_y + 1][player_x] != '#') next_y++; break;
-        case ' ':
-            if (!is_jumping && (floor_tile == '#' || on_ladder)) {
-                is_jumping = 1;
-                velocity_y = -2;
-            }
-            break;
+    case 'a': next_x--; break;
+    case 'd': next_x++; break;
+    case 'w': if (on_ladder) next_y--; break;
+    case 's': if (on_ladder && (player_y + 1 < MAP_HEIGHT) && map[stage][player_y + 1][player_x] != '#') next_y++; break;
+    case ' ':
+        if (!is_jumping && (floor_tile == '#' || on_ladder)) {
+            is_jumping = 1;
+            velocity_y = -2;
+        }
+        break;
     }
 
     if (next_x >= 0 && next_x < MAP_WIDTH && map[stage][player_y][next_x] != '#') player_x = next_x;
-    
+
     if (on_ladder && (input == 'w' || input == 's')) {
-        if(next_y >= 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] != '#') {
+        if (next_y >= 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] != '#') {
             player_y = next_y;
             is_jumping = 0;
             velocity_y = 0;
         }
-    } 
+    }
     else {
         if (is_jumping) {
             next_y = player_y + velocity_y;
-            if(next_y < 0) next_y = 0;
+            if (next_y < 0) next_y = 0;
             velocity_y++;
 
             if (velocity_y < 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] == '#') {
                 velocity_y = 0;
-            } else if (next_y < MAP_HEIGHT) {
+            }
+            else if (next_y < MAP_HEIGHT) {
                 player_y = next_y;
             }
-            
+
             if ((player_y + 1 < MAP_HEIGHT) && map[stage][player_y + 1][player_x] == '#') {
                 is_jumping = 0;
                 velocity_y = 0;
             }
-        } else {
+        }
+        else {
             if (floor_tile != '#' && floor_tile != 'H') {
-                 if (player_y + 1 < MAP_HEIGHT) player_y++;
-                 else init_stage();
+                if (player_y + 1 < MAP_HEIGHT) player_y++;
+                else init_stage();
             }
         }
     }
-    
+
     if (player_y >= MAP_HEIGHT) init_stage();
 }
 
@@ -275,7 +297,8 @@ void move_enemies() {
         int next_x = enemies[i].x + enemies[i].dir;
         if (next_x < 0 || next_x >= MAP_WIDTH || map[stage][enemies[i].y][next_x] == '#' || (enemies[i].y + 1 < MAP_HEIGHT && map[stage][enemies[i].y + 1][next_x] == ' ')) {
             enemies[i].dir *= -1;
-        } else {
+        }
+        else {
             enemies[i].x = next_x;
         }
     }
@@ -312,7 +335,7 @@ int kbhit() {
     ch = getchar();
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
     fcntl(STDIN_FILENO, F_SETFL, oldf);
-    if(ch != EOF) {
+    if (ch != EOF) {
         ungetc(ch, stdin);
         return 1;
     }
