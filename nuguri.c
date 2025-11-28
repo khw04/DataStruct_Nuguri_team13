@@ -297,9 +297,16 @@ void move_player(char input) {
             if(next_y < 0) next_y = 0;
             //점프 시도 시, 플레이어 위에 벽이 있으면 점프가 되지 않는 버그 수정
             int block_at_next_y = (next_y < MAP_HEIGHT && map[stage][next_y][player_x] == '#');
+            //점프 속도 증가(중력 적용)
+            velocity_y++;
+            //위가 벽이면 한 칸 위가 비어있는지 확인, 비어있으면 한 칸 올라가고 상승 속도 0으로 처리
+            if (velocity_y <= 0 && block_at_next_y) {
+                if (player_y - 1 >= 0 && map[stage][player_y - 1][player_x] != '#') {
+                    player_y = player_y - 1; 
+                }
 
-            if (velocity_y < 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] == '#') {
-                velocity_y = 0;
+                velocity_y = 0; //상승 속도 0, 더 이상 상승하지 않도록
+            
             } else if (next_y < MAP_HEIGHT) {
                 player_y = next_y;
             }
