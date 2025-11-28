@@ -12,6 +12,7 @@
 #define MAX_STAGES 2
 #define MAX_ENEMIES 15 // 최대 적 개수 증가
 #define MAX_COINS 30   // 최대 코인 개수 증가
+#define MAX_LIFE 3 // 생명 개수(기능구현3)
 
 // 구조체 정의
 typedef struct {
@@ -27,7 +28,9 @@ typedef struct {
 // 전역 변수
 char map[MAX_STAGES][MAP_HEIGHT][MAP_WIDTH + 1];
 int player_x, player_y;
+int respawn_x, respawn_y; // 리스폰 위치 저장(기능구현3)
 int stage = 0;
+int life = MAX_LIFE; // 생명 변수 추가(기능구현3)
 int score = 0;
 
 // 플레이어 상태
@@ -52,6 +55,7 @@ void init_stage();
 void draw_game();
 void update_game(char input);
 void move_player(char input);
+void respawn(); // 리스폰 함수 추가(기능구현3)
 void move_enemies();
 void check_collisions();
 int kbhit();
@@ -88,6 +92,13 @@ int main() {
         update_game(c);
         draw_game();
         usleep(90000);
+        // 생명이 0일때 게임 오버
+        if(life <=0){
+            game_over =1;
+            printf("\x1b[2J\x1b[H");
+            printf("GAME OVER!\n");
+            printf("FINAL SCORE: %d\n",score);
+        }
 
         if (map[stage][player_y][player_x] == 'E') {
             stage++;
@@ -149,6 +160,7 @@ void init_stage() {
     coin_count = 0;
     is_jumping = 0;
     velocity_y = 0;
+    life = MAX_LIFE; //스테이지 이동시 생명 개수 초기화(기능구현3)
 
     for (int y = 0; y < MAP_HEIGHT; y++) {
         for (int x = 0; x < MAP_WIDTH; x++) {
@@ -156,6 +168,8 @@ void init_stage() {
             if (cell == 'S') {
                 player_x = x;
                 player_y = y;
+                respawn_x = x; //리스폰 위치 저장(기능구현3)
+                respawn_y = y; // 같음(기능구현3)
             } else if (cell == 'X' && enemy_count < MAX_ENEMIES) {
                 enemies[enemy_count] = (Enemy){x, y, (rand() % 2) * 2 - 1};
                 enemy_count++;
@@ -166,10 +180,23 @@ void init_stage() {
     }
 }
 
+//시작지점 리스폰 함수(기능구현3)
+void respawn(){
+    player_x = respawn_x; // 플레이어 위치 초기화
+    player_y = respawn_y;
+    is_jumping = 0; // 플레이어 상태 초기화
+    velocity_y = 0;
+    on_ladder = 0;
+}
+
 // 게임 화면 그리기
 void draw_game() {
     printf("\x1b[2J\x1b[H");
-    printf("Stage: %d | Score: %d\n", stage + 1, score);
+    printf("Stage: %d | Score: %d | Life: ", stage + 1, score); // 화면에 생명 표시 추가(기능구현3)
+    for (int i = 0; i < life; i++) {
+        printf("♥ ");
+    }
+    printf("\n");
     printf("조작: ← → (이동), ↑ ↓ (사다리), Space (점프), q (종료)\n");
 
     char display_map[MAP_HEIGHT][MAP_WIDTH + 1];
@@ -260,12 +287,22 @@ void move_player(char input) {
         } else {
             if (floor_tile != '#' && floor_tile != 'H') {
                  if (player_y + 1 < MAP_HEIGHT) player_y++;
-                 else init_stage();
+                 else {
+                    life--;
+                    if(life>0){
+                        respawn();
+                    }
+                 }
             }
         }
     }
     
-    if (player_y >= MAP_HEIGHT) init_stage();
+    if (player_y >= MAP_HEIGHT) {
+        life--; // 맵 밖으로 이동한 경우 생명 감소(기능구현3)
+        if(life>0){
+            respawn();
+        }
+    }
 }
 
 
@@ -285,8 +322,11 @@ void move_enemies() {
 void check_collisions() {
     for (int i = 0; i < enemy_count; i++) {
         if (player_x == enemies[i].x && player_y == enemies[i].y) {
+            life--; // 닿으면 생명 감소(기능구현3)
             score = (score > 50) ? score - 50 : 0;
-            init_stage();
+            if(life > 0){ //생명>0이면 리스폰 함수 호출(기능구현3)
+                respawn();
+            }
             return;
         }
     }
