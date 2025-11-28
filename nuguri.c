@@ -227,7 +227,20 @@ void move_player(char input) {
         case 'a': next_x--; break;
         case 'd': next_x++; break;
         case 'w': if (on_ladder) next_y--; break;
-        case 's': if (on_ladder && (player_y + 1 < MAP_HEIGHT) && map[stage][player_y + 1][player_x] != '#') next_y++; break;
+        
+        // [권희원 수정 3] s키 로직 조건에 맞게 수정, 조건이 한눈에 이해하기엔 어렵기 때문에 종이에 적어보면서 이해하시면 좋을것 같습니다.
+        case 's': 
+            if (on_ladder && (player_y + 1 < MAP_HEIGHT)){
+                if (floor_tile != '#') next_y++;
+            }
+            else if (floor_tile == 'H' && (player_y + 1 < MAP_HEIGHT)){
+                next_y++;
+            }
+            else if ((floor_tile == '#' && floor_floor_tile == 'H') && (player_y + 1 < MAP_HEIGHT)){
+                next_y++;
+            }
+            break;
+
         case ' ':
             if (!is_jumping && (floor_tile == '#' || on_ladder)) {
                 is_jumping = 1;
