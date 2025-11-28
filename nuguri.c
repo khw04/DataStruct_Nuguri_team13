@@ -245,13 +245,32 @@ void move_player(char input) {
     char floor_tile = (player_y + 1 < MAP_HEIGHT) ? map[stage][player_y + 1][player_x] : '#';
     char current_tile = map[stage][player_y][player_x];
 
-    on_ladder = (current_tile == 'H');
+    // [권희원 수정 1] 변수 추가
+    char floor_floor_tile = (player_y + 2 < MAP_HEIGHT) ? map[stage][player_y + 2][player_x] : '#'; // 아래아래 블럭 감지
+    int intended_move = 0; // 블럭을 뚫고 가야하는 특수한 상황 플래그 변수 추가
+
+    // [권희원 수정 2] on_ladder 정의에 블록 내부일때 조건도 추가함
+    on_ladder = (current_tile == 'H') || (current_tile == '#' && floor_tile == 'H');
 
     switch (input) {
         case 'a': next_x--; break;
         case 'd': next_x++; break;
         case 'w': if (on_ladder) next_y--; break;
-        case 's': if (on_ladder && (player_y + 1 < MAP_HEIGHT) && map[stage][player_y + 1][player_x] != '#') next_y++; break;
+        
+        // [권희원 수정 3] s키 로직 조건에 맞게 수정, 조건이 한눈에 이해하기엔 어렵기 때문에 종이에 적어보면서 이해하시면 좋을것 같습니다.
+        case 's': 
+            if (on_ladder && (player_y + 1 < MAP_HEIGHT)){
+                if (floor_tile != '#') next_y++;
+            }
+            else if (floor_tile == 'H' && (player_y + 1 < MAP_HEIGHT)){
+                next_y++;
+            }
+            else if ((floor_tile == '#' && floor_floor_tile == 'H') && (player_y + 1 < MAP_HEIGHT)){
+                next_y++;
+                intended_move = 1; // 특수 상황일때 플래그 켬
+            }
+            break;
+
         case ' ':
             if (!is_jumping && (floor_tile == '#' || on_ladder)) {
                 is_jumping = 1;
@@ -262,8 +281,11 @@ void move_player(char input) {
 
     if (next_x >= 0 && next_x < MAP_WIDTH && map[stage][player_y][next_x] != '#') player_x = next_x;
     
-    if (on_ladder && (input == 'w' || input == 's')) {
-        if(next_y >= 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] != '#') {
+    // [권희원 수정 4] 플래그가 활성화 됐을때를 조건에 추가함
+    if ((on_ladder || intended_move) && (input == 'w' || input == 's')) {
+        
+        // [권희원 수정 5] 벽이 아닐때 OR 플래그 활성화 됐을때
+        if(next_y >= 0 && next_y < MAP_HEIGHT && (map[stage][next_y][player_x] != '#' || intended_move)) {
             player_y = next_y;
             is_jumping = 0;
             velocity_y = 0;
