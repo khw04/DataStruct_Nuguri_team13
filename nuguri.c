@@ -217,6 +217,9 @@ void move_player(char input) {
     char floor_tile = (player_y + 1 < MAP_HEIGHT) ? map[stage][player_y + 1][player_x] : '#';
     char current_tile = map[stage][player_y][player_x];
 
+    // [권희원 수정 1] 변수 추가
+    char floor_floor_tile = (player_y + 2 < MAP_HEIGHT) ? map[stage][player_y + 2][player_x] : '#'; // 아래아래 블럭 감지
+
     on_ladder = (current_tile == 'H');
 
     switch (input) {
