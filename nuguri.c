@@ -220,7 +220,8 @@ void move_player(char input) {
     // [권희원 수정 1] 변수 추가
     char floor_floor_tile = (player_y + 2 < MAP_HEIGHT) ? map[stage][player_y + 2][player_x] : '#'; // 아래아래 블럭 감지
 
-    on_ladder = (current_tile == 'H');
+    // [권희원 수정 2] on_ladder 정의에 블록 내부일때 조건도 추가함
+    on_ladder = (current_tile == 'H') || (current_tile == '#' && floor_tile == 'H');
 
     switch (input) {
         case 'a': next_x--; break;
