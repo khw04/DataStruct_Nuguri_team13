@@ -85,6 +85,7 @@ int main() {
                     case 'D': c = 'a'; break; // Left
                 }
             }
+            while (kbhit()) getchar();  // 입력 버퍼 완전 삭제 (미셸)
         } else {
             c = '\0';
         }
