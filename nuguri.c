@@ -295,7 +295,8 @@ void move_player(char input) {
         if (is_jumping) {
             next_y = player_y + velocity_y;
             if(next_y < 0) next_y = 0;
-            velocity_y++;
+            //점프 시도 시, 플레이어 위에 벽이 있으면 점프가 되지 않는 버그 수정
+            int block_at_next_y = (next_y < MAP_HEIGHT && map[stage][next_y][player_x] == '#');
 
             if (velocity_y < 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] == '#') {
                 velocity_y = 0;
