@@ -239,7 +239,7 @@ void move_player(char input) {
             }
             else if ((floor_tile == '#' && floor_floor_tile == 'H') && (player_y + 1 < MAP_HEIGHT)){
                 next_y++;
-                intended_move = 1;
+                intended_move = 1; // 특수 상황일때 플래그 켬
             }
             break;
 
@@ -253,8 +253,11 @@ void move_player(char input) {
 
     if (next_x >= 0 && next_x < MAP_WIDTH && map[stage][player_y][next_x] != '#') player_x = next_x;
     
-    if (on_ladder && (input == 'w' || input == 's')) {
-        if(next_y >= 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] != '#') {
+    // [권희원 수정 4] 플래그가 활성화 됐을때를 조건에 추가함
+    if ((on_ladder || intended_move) && (input == 'w' || input == 's')) {
+        
+        // [권희원 수정 5] 벽이 아닐때 OR 플래그 활성화 됐을때
+        if(next_y >= 0 && next_y < MAP_HEIGHT && (map[stage][next_y][player_x] != '#' || intended_move)) {
             player_y = next_y;
             is_jumping = 0;
             velocity_y = 0;
