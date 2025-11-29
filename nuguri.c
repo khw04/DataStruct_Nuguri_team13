@@ -163,7 +163,7 @@ void enable_raw_mode() {
 
 // 맵 파일 로드
 void load_maps() {
-    FILE* file = fopen("map.txt", "r");
+    FILE *file = fopen("map.txt", "r");
     if (!file) {
         perror("map.txt 파일을 열 수 없습니다.");
         exit(1);
@@ -202,20 +202,18 @@ void init_stage() {
                 player_y = y;
                 respawn_x = x; //리스폰 위치 저장(기능구현3)
                 respawn_y = y; // 같음(기능구현3)
-            }
-            else if (cell == 'X' && enemy_count < MAX_ENEMIES) {
-                enemies[enemy_count] = (Enemy){ x, y, (rand() % 2) * 2 - 1 };
+            } else if (cell == 'X' && enemy_count < MAX_ENEMIES) {
+                enemies[enemy_count] = (Enemy){x, y, (rand() % 2) * 2 - 1};
                 enemy_count++;
-            }
-            else if (cell == 'C' && coin_count < MAX_COINS) {
-                coins[coin_count++] = (Coin){ x, y, 0 };
+            } else if (cell == 'C' && coin_count < MAX_COINS) {
+                coins[coin_count++] = (Coin){x, y, 0};
             }
         }
     }
 }
 
 //시작지점 리스폰 함수(기능구현3)
-void respawn() {
+void respawn(){
     player_x = respawn_x; // 플레이어 위치 초기화
     player_y = respawn_y;
     is_jumping = 0; // 플레이어 상태 초기화
@@ -234,18 +232,17 @@ void draw_game() {
     printf("조작: ← → (이동), ↑ ↓ (사다리), Space (점프), q (종료)\n");
 
     char display_map[MAP_HEIGHT][MAP_WIDTH + 1];
-    for (int y = 0; y < MAP_HEIGHT; y++) {
-        for (int x = 0; x < MAP_WIDTH; x++) {
+    for(int y=0; y < MAP_HEIGHT; y++) {
+        for(int x=0; x < MAP_WIDTH; x++) {
             char cell = map[stage][y][x];
             if (cell == 'S' || cell == 'X' || cell == 'C') {
                 display_map[y][x] = ' ';
-            }
-            else {
+            } else {
                 display_map[y][x] = cell;
             }
         }
     }
-
+    
     for (int i = 0; i < coin_count; i++) {
         if (!coins[i].collected) {
             display_map[coins[i].y][coins[i].x] = 'C';
@@ -259,7 +256,7 @@ void draw_game() {
     display_map[player_y][player_x] = 'P';
 
     for (int y = 0; y < MAP_HEIGHT; y++) {
-        for (int x = 0; x < MAP_WIDTH; x++) {
+        for(int x=0; x< MAP_WIDTH; x++){
             printf("%c", display_map[y][x]);
         }
         printf("\n");
@@ -287,48 +284,48 @@ void move_player(char input) {
     on_ladder = (current_tile == 'H') || (current_tile == '#' && floor_tile == 'H');
 
     switch (input) {
-    case 'a': next_x--; break;
-    case 'd': next_x++; break;
-    case 'w': if (on_ladder) next_y--; break;
-
+        case 'a': next_x--; break;
+        case 'd': next_x++; break;
+        case 'w': if (on_ladder) next_y--; break;
+        
         // [권희원 수정 3] s키 로직 조건에 맞게 수정, 조건이 한눈에 이해하기엔 어렵기 때문에 종이에 적어보면서 이해하시면 좋을것 같습니다.
-    case 's':
-        if (on_ladder && (player_y + 1 < MAP_HEIGHT)) {
-            if (floor_tile != '#') next_y++;
-        }
-        else if (floor_tile == 'H' && (player_y + 1 < MAP_HEIGHT)) {
-            next_y++;
-        }
-        else if ((floor_tile == '#' && floor_floor_tile == 'H') && (player_y + 1 < MAP_HEIGHT)) {
-            next_y++;
-            intended_move = 1; // 특수 상황일때 플래그 켬
-        }
-        break;
+        case 's': 
+            if (on_ladder && (player_y + 1 < MAP_HEIGHT)){
+                if (floor_tile != '#') next_y++;
+            }
+            else if (floor_tile == 'H' && (player_y + 1 < MAP_HEIGHT)){
+                next_y++;
+            }
+            else if ((floor_tile == '#' && floor_floor_tile == 'H') && (player_y + 1 < MAP_HEIGHT)){
+                next_y++;
+                intended_move = 1; // 특수 상황일때 플래그 켬
+            }
+            break;
 
-    case ' ':
-        if (!is_jumping && (floor_tile == '#' || on_ladder)) {
-            is_jumping = 1;
-            velocity_y = -2;
-        }
-        break;
+        case ' ':
+            if (!is_jumping && (floor_tile == '#' || on_ladder)) {
+                is_jumping = 1;
+                velocity_y = -2;
+            }
+            break;
     }
 
     if (next_x >= 0 && next_x < MAP_WIDTH && map[stage][player_y][next_x] != '#') player_x = next_x;
-
+    
     // [권희원 수정 4] 플래그가 활성화 됐을때를 조건에 추가함
     if ((on_ladder || intended_move) && (input == 'w' || input == 's')) {
-
+        
         // [권희원 수정 5] 벽이 아닐때 OR 플래그 활성화 됐을때
-        if (next_y >= 0 && next_y < MAP_HEIGHT && (map[stage][next_y][player_x] != '#' || intended_move)) {
+        if(next_y >= 0 && next_y < MAP_HEIGHT && (map[stage][next_y][player_x] != '#' || intended_move)) {
             player_y = next_y;
             is_jumping = 0;
             velocity_y = 0;
         }
-    }
+    } 
     else {
         if (is_jumping) {
             next_y = player_y + velocity_y;
-            if (next_y < 0) next_y = 0;
+            if(next_y < 0) next_y = 0;
             //점프 시도 시, 플레이어 위에 벽이 있으면 점프가 되지 않는 버그 수정
             int block_at_next_y = (next_y < MAP_HEIGHT && map[stage][next_y][player_x] == '#');
             //점프 속도 증가(중력 적용)
@@ -336,37 +333,35 @@ void move_player(char input) {
             //위가 벽이면 한 칸 위가 비어있는지 확인, 비어있으면 한 칸 올라가고 상승 속도 0으로 처리
             if (velocity_y <= 0 && block_at_next_y) {
                 if (player_y - 1 >= 0 && map[stage][player_y - 1][player_x] != '#') {
-                    player_y = player_y - 1;
+                    player_y = player_y - 1; 
                 }
 
                 velocity_y = 0; //상승 속도 0, 더 이상 상승하지 않도록
-
-            }
-            else if (next_y < MAP_HEIGHT) {
+            
+            } else if (next_y < MAP_HEIGHT) {
                 player_y = next_y;
             }
-
+            
             if ((player_y + 1 < MAP_HEIGHT) && map[stage][player_y + 1][player_x] == '#') {
                 is_jumping = 0;
                 velocity_y = 0;
             }
-        }
-        else {
+        } else {
             if (floor_tile != '#' && floor_tile != 'H') {
-                if (player_y + 1 < MAP_HEIGHT) player_y++;
-                else {
+                 if (player_y + 1 < MAP_HEIGHT) player_y++;
+                 else {
                     life--;
-                    if (life > 0) {
+                    if(life>0){
                         respawn();
                     }
-                }
+                 }
             }
         }
     }
-
+    
     if (player_y >= MAP_HEIGHT) {
         life--; // 맵 밖으로 이동한 경우 생명 감소(기능구현3)
-        if (life > 0) {
+        if(life>0){
             respawn();
         }
     }
@@ -379,8 +374,7 @@ void move_enemies() {
         int next_x = enemies[i].x + enemies[i].dir;
         if (next_x < 0 || next_x >= MAP_WIDTH || map[stage][enemies[i].y][next_x] == '#' || (enemies[i].y + 1 < MAP_HEIGHT && map[stage][enemies[i].y + 1][next_x] == ' ')) {
             enemies[i].dir *= -1;
-        }
-        else {
+        } else {
             enemies[i].x = next_x;
         }
     }
@@ -392,7 +386,7 @@ void check_collisions() {
         if (player_x == enemies[i].x && player_y == enemies[i].y) {
             life--; // 닿으면 생명 감소(기능구현3)
             score = (score > 50) ? score - 50 : 0;
-            if (life > 0) { //생명>0이면 리스폰 함수 호출(기능구현3)
+            if(life > 0){ //생명>0이면 리스폰 함수 호출(기능구현3)
                 respawn();
             }
             return;
@@ -498,7 +492,7 @@ int kbhit() {
     ch = getchar();
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
     fcntl(STDIN_FILENO, F_SETFL, oldf);
-    if (ch != EOF) {
+    if(ch != EOF) {
         ungetc(ch, stdin);
         return 1;
     }
