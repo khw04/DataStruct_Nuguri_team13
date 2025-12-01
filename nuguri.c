@@ -87,6 +87,24 @@ void clrscr() {
 #endif
 }
 
+char cross_getch() {
+#ifdef _WIN32
+int c = _getch();
+if (c == 0 || c == 224) {
+    int code = _getch();
+    switch(code) {
+        case 72: c = 'w'; break; //up
+        case 80: c = 's'; break; //down
+        case 75: c = 'a'; break; //left
+        case 77: c = 'd'; break; //right
+    }
+}
+    return (char)c;
+#else
+    return getchar();
+#endif
+}
+
 int main() {
     srand(time(NULL));
     enable_raw_mode();
@@ -98,7 +116,7 @@ int main() {
 
     while (!game_over && stage < MAX_STAGES) {
         if (kbhit()) {
-            c = getchar();
+            c = cross_getch();
             if (c == 'q') {
                 game_over = 1;
                 continue;
@@ -112,7 +130,7 @@ int main() {
                     case 'D': c = 'a'; break; // Left
                 }
             }
-            while (kbhit()) getchar();  // 입력 버퍼 완전 삭제 (미셸)
+            while (kbhit()) cross_getch();  // 입력 버퍼 완전 삭제 (미셸)
         } else {
             c = '\0';
         }
@@ -219,7 +237,7 @@ void respawn(){
 
 // 게임 화면 그리기
 void draw_game() {
-    printf("\x1b[2J\x1b[H");
+    clrscr();
     printf("Stage: %d | Score: %d | Life: ", stage + 1, score); // 화면에 생명 표시 추가(기능구현3)
     for (int i = 0; i < life; i++) {
         printf("♥ ");
@@ -398,6 +416,9 @@ void check_collisions() {
 
 // 비동기 키보드 입력 확인
 int kbhit() {
+#ifdef _WIN32
+    return _kbhit();
+#else
     struct termios oldt, newt;
     int ch;
     int oldf;
@@ -415,4 +436,5 @@ int kbhit() {
         return 1;
     }
     return 0;
+#endif
 }
