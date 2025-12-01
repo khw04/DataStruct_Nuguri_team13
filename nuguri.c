@@ -4,6 +4,9 @@
 #ifdef _WIN32
     #include <windows.h>
     #include <conio.h>
+    #ifndef usleep
+    #define usleep(x) Sleep((x)/1000)
+    #endif
 #else
 #include <unistd.h>
 #include <termios.h>
@@ -72,6 +75,7 @@ void delay(int ms) {
     usleep(ms * 1000);
     #endif
 }
+
 
 int main() {
     srand(time(NULL));
