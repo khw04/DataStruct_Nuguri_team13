@@ -1,9 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+    #include <windows.h>
+    #include <conio.h>
+#else
 #include <unistd.h>
 #include <termios.h>
 #include <fcntl.h>
+#endif
 #include <time.h>
 
 // 맵 및 게임 요소 정의 (수정된 부분)
@@ -59,6 +64,14 @@ void respawn(); // 리스폰 함수 추가(기능구현3)
 void move_enemies();
 void check_collisions();
 int kbhit();
+
+void delay(int ms) {
+    #ifdef _WIN32
+    Sleep(ms);
+    #else
+    usleep(ms * 1000);
+    #endif
+}
 
 int main() {
     srand(time(NULL));
