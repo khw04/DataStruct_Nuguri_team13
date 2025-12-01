@@ -53,7 +53,9 @@ Coin coins[MAX_COINS];
 int coin_count = 0;
 
 // 터미널 설정
+#ifndef _WIN32
 struct termios orig_termios;
+#endif
 
 // 함수 선언
 void disable_raw_mode();
@@ -76,6 +78,14 @@ void delay(int ms) {
     #endif
 }
 
+void clrscr() {
+#ifdef _WIN32
+    system("cls")
+#else
+    printf("\x1b[2J\x1b[H");
+    fflush(stdout);
+#endif
+}
 
 int main() {
     srand(time(NULL));
