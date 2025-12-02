@@ -4,8 +4,8 @@
 #ifdef _WIN32
     #include <windows.h>
     #include <conio.h>
-    #ifndef usleep
-    #define usleep(x) Sleep((x)/1000)
+    #ifndef usleep // 윈도우에는 usleep이 없으므로 Sleep으로 대체, 단위 ms
+    #define usleep(x) Sleep((x)/1000) 
     #endif
 #else
 #include <unistd.h>
@@ -53,6 +53,7 @@ Coin coins[MAX_COINS];
 int coin_count = 0;
 
 // 터미널 설정
+// 윈도우에서는 termios를 사용하지 않으므로 제외
 #ifndef _WIN32
 struct termios orig_termios;
 #endif
@@ -80,27 +81,27 @@ void delay(int ms) {
 
 void clrscr() {
 #ifdef _WIN32
-    ;
+    ;   //윈도우에서는 전체 화면 지우지 않음 (커서 이동함)
 #else
-    printf("\x1b[2J\x1b[H");
+    printf("\x1b[2J\x1b[H"); // 터미널 화면 지우기 및 커서 이동
     fflush(stdout);
 #endif
 }
 
-void hide_cursor() { printf("\e[?25l"); }
-void show_cursor() { printf("\e[?25h"); }
-void gotoxy(int x, int y) { printf("\033[%d;%dH", y, x); }
+void hide_cursor() { printf("\e[?25l"); } // 커서 숨기기
+void show_cursor() { printf("\e[?25h"); } // 커서 보이기
+void gotoxy(int x, int y) { printf("\033[%d;%dH", y, x); } // 커서를 (x, y) 위치로 이동함
 
 char cross_getch() {
 #ifdef _WIN32
 int c = _getch();
-if (c == 0 || c == 224) {
+if (c == 0 || c == 224) { // 방향키 처리
     int code = _getch();
     switch(code) {
-        case 72: c = 'w'; break; //up
-        case 80: c = 's'; break; //down
-        case 75: c = 'a'; break; //left
-        case 77: c = 'd'; break; //right
+        case 72: c = 'w'; break; // up
+        case 80: c = 's'; break; // down
+        case 75: c = 'a'; break; // left
+        case 77: c = 'd'; break; // right
     }
 }
     return (char)c;
@@ -116,27 +117,27 @@ void draw_life() { // 하트가 없어지지 않는 현상 때문에 추가
 
     for (int i = 0; i < life; i++) {
         printf("♥ "); }
-//남은 자리는 공백으로 덮어쓰기
+// 남은 자리는 공백으로 덮어쓰기
     for (int i = life; i < MAX_LIFE; i++) {
         printf("  "); }
-    fflush(stdout); //바로 화면에 반영
+    fflush(stdout); // 바로 화면에 반영
 #endif
 }
 
-void enable_ansi() {
+void enable_ansi() { // 윈도우 콘솔에서 ANSI 활성화
 #ifdef _WIN32
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hOut == INVALID_HANDLE_VALUE) return;
     DWORD dwmode = 0;
     if (!GetConsoleMode(hOut, &dwmode)) return;
-    dwmode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    dwmode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING; // ANSI Escape 코드 사용 허용
     SetConsoleMode(hOut, dwmode);
 #endif
 }
 
 int main() {
 #ifdef _WIN32
-    system("chcp 65001 > nul"); //한글 깨짐 수정
+    system("chcp 65001 > nul"); // 한글 깨짐 수정
     enable_ansi();
     hide_cursor();
 #endif
@@ -208,7 +209,7 @@ int main() {
 
 // 터미널 Raw 모드 활성화/비활성화
 #ifdef _WIN32
-void enable_raw_mode() {}
+void enable_raw_mode() {} // 윈도우에서는 Raw 모드 필요 없음, _getch()로 대체
 void disable_raw_mode() {}
 #else
 void disable_raw_mode() { tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios); }
@@ -391,7 +392,7 @@ void move_player(char input) {
         if (is_jumping) {
             next_y = player_y + velocity_y;
             if(next_y < 0) next_y = 0;
-            //점프 시도 시, 플레이어 위에 벽이 있으면 점프가 되지 않는 버그 수정
+            //점프 시도 시, 플레이어 위에 벽이 있으면 점프가 되지 않는 버그 수정 [정혜영 수정]
             int block_at_next_y = (next_y < MAP_HEIGHT && map[stage][next_y][player_x] == '#');
             //점프 속도 증가(중력 적용)
             velocity_y++;
@@ -468,7 +469,7 @@ void check_collisions() {
 // 비동기 키보드 입력 확인
 int kbhit() {
 #ifdef _WIN32
-    return _kbhit();
+    return _kbhit(); 
 #else
     struct termios oldt, newt;
     int ch;
