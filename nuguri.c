@@ -80,7 +80,7 @@ void delay(int ms) {
 
 void clrscr() {
 #ifdef _WIN32
-    system("cls")
+    system("cls");
 #else
     printf("\x1b[2J\x1b[H");
     fflush(stdout);
@@ -106,6 +106,9 @@ if (c == 0 || c == 224) {
 }
 
 int main() {
+#ifdef _WIN32
+    system("chcp 65001 > nul"); //한글 깨짐 수정
+#endif
     srand(time(NULL));
     enable_raw_mode();
     load_maps();
