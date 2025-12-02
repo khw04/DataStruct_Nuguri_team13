@@ -109,17 +109,16 @@ if (c == 0 || c == 224) {
 #endif
 }
 
-void draw_life(int life) { // 하트가 없어지지 않는 현상 때문에 추가
+void draw_life() { // 하트가 없어지지 않는 현상 때문에 추가
 #ifdef _WIN32
     gotoxy(0, 0);
     printf("Stage: %d | Score: %d | Life: ", stage + 1, score);
 
-    for (int i = 0; i < life; i++)
-        printf("♥");
+    for (int i = 0; i < life; i++) {
+        printf("♥ "); }
 //남은 자리는 공백으로 덮어쓰기
-    for (int i = life; i < MAX_LIFE; i++)
-        printf("  ");
-    
+    for (int i = life; i < MAX_LIFE; i++) {
+        printf("  "); }
     fflush(stdout); //바로 화면에 반영
 #endif
 }
@@ -172,7 +171,11 @@ int main() {
 
         update_game(c);
         draw_game();
+    #ifdef _WIN32
+        usleep(20000); //속도 비슷하게 맞춤
+    #else
         usleep(90000);
+    #endif
         // 생명이 0일때 게임 오버
         if(life <=0){
             game_over =1;
@@ -281,15 +284,15 @@ void respawn(){
 // 게임 화면 그리기
 void draw_game() {
 #ifdef _WIN32
-    gotoxy(1,1);
+    draw_life();
 #else   
     clrscr();
-#endif
-
     printf("Stage: %d | Score: %d | Life: ", stage + 1, score); // 화면에 생명 표시 추가(기능구현3)
     for (int i = 0; i < life; i++) {
         printf("♥ ");
     }
+#endif
+
     printf("\n");
     printf("조작: ← → (이동), ↑ ↓ (사다리), Space (점프), q (종료)\n");
 
