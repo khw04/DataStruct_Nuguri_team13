@@ -279,82 +279,101 @@ void move_player(char input) {
     char floor_tile = (player_y + 1 < MAP_HEIGHT) ? map[stage][player_y + 1][player_x] : '#';
     char current_tile = map[stage][player_y][player_x];
 
-    // [권희원 수정 1] 변수 추가
-    char floor_floor_tile = (player_y + 2 < MAP_HEIGHT) ? map[stage][player_y + 2][player_x] : '#'; // 아래아래 블럭 감지
-    int intended_move = 0; // 블럭을 뚫고 가야하는 특수한 상황 플래그 변수 추가
-
-    // [권희원 수정 2] on_ladder 정의에 블록 내부일때 조건도 추가함
     on_ladder = (current_tile == 'H') || (current_tile == '#' && floor_tile == 'H');
 
     switch (input) {
-    case 'a': next_x--; break;
-    case 'd': next_x++; break;
-    case 'w': if (on_ladder) next_y--; break;
+        case 'a': 
+            next_x--; 
+            break;
+            
+        case 'd': 
+            next_x++; 
+            break;
+            
+        case 'w': 
+            if (on_ladder) next_y--; 
+            break;
+        
+        case 's': 
+            if (on_ladder && (player_y + 1 < MAP_HEIGHT)) {
+                if (floor_tile != '#') next_y++;
+            }
+            else if (floor_tile == 'H' && (player_y + 1 < MAP_HEIGHT)) {
+                next_y++;
+            }
+            break;
 
-        // [권희원 수정 3] s키 로직 조건에 맞게 수정, 조건이 한눈에 이해하기엔 어렵기 때문에 종이에 적어보면서 이해하시면 좋을것 같습니다.
-    case 's':
-        if (on_ladder && (player_y + 1 < MAP_HEIGHT)) {
-            if (floor_tile != '#') next_y++;
-        }
-        else if (floor_tile == 'H' && (player_y + 1 < MAP_HEIGHT)) {
-            next_y++;
-        }
-        else if ((floor_tile == '#' && floor_floor_tile == 'H') && (player_y + 1 < MAP_HEIGHT)) {
-            next_y++;
-            intended_move = 1; // 특수 상황일때 플래그 켬
-        }
-        break;
-
-    case ' ':
-        if (!is_jumping && (floor_tile == '#' || on_ladder)) {
-            is_jumping = 1;
-            velocity_y = -2;
-        }
-        break;
+        case ' ':
+            if (!is_jumping && (floor_tile == '#' || on_ladder)) {
+                is_jumping = 1;
+                velocity_y = -2;
+            }
+            break;
     }
 
-    if (next_x >= 0 && next_x < MAP_WIDTH && map[stage][player_y][next_x] != '#') player_x = next_x;
-
-    // [권희원 수정 4] 플래그가 활성화 됐을때를 조건에 추가함
-    if ((on_ladder || intended_move) && (input == 'w' || input == 's')) {
-
-        // [권희원 수정 5] 벽이 아닐때 OR 플래그 활성화 됐을때
-        if (next_y >= 0 && next_y < MAP_HEIGHT && (map[stage][next_y][player_x] != '#' || intended_move)) {
+    if (next_x >= 0 && next_x < MAP_WIDTH && map[stage][player_y][next_x] != '#') {
+        player_x = next_x;
+    }
+    
+    if (on_ladder && (input == 'w' || input == 's')) {
+        if (next_y >= 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] != '#') {
             player_y = next_y;
             is_jumping = 0;
             velocity_y = 0;
         }
-    }
+    } 
     else {
         if (is_jumping) {
-            next_y = player_y + velocity_y;
-            if (next_y < 0) next_y = 0;
-            //점프 시도 시, 플레이어 위에 벽이 있으면 점프가 되지 않는 버그 수정
-            int block_at_next_y = (next_y < MAP_HEIGHT && map[stage][next_y][player_x] == '#');
-            //점프 속도 증가(중력 적용)
-            velocity_y++;
-            //위가 벽이면 한 칸 위가 비어있는지 확인, 비어있으면 한 칸 올라가고 상승 속도 0으로 처리
-            if (velocity_y <= 0 && block_at_next_y) {
-                if (player_y - 1 >= 0 && map[stage][player_y - 1][player_x] != '#') {
-                    player_y = player_y - 1;
+            int move_amount = velocity_y;
+            int actual_move = 0;
+            char above_tile = (player_y - 1 >= 0) ? map[stage][player_y - 1][player_x] : ' ';
+            int jumped_from_ladder = (current_tile == 'H' && above_tile == '#');
+            
+            if (move_amount < 0) {
+                for (int i = 0; i > move_amount; i--) {
+                    int check_y = player_y + actual_move - 1;
+                    if (check_y >= 0 && check_y < MAP_HEIGHT) {
+                        char check_tile = map[stage][check_y][player_x];
+                        
+                        if (check_tile == '#') {
+                            if (jumped_from_ladder) {
+                                jumped_from_ladder = 0;
+                                actual_move--;
+                            } else {
+                                velocity_y = 1;
+                                break;
+                            }
+                        } else {
+                            actual_move--;
+                        }
+                    } else {
+                        break;
+                    }
                 }
-
-                velocity_y = 0; //상승 속도 0, 더 이상 상승하지 않도록
-
+            } else if (move_amount > 0) {
+                for (int i = 0; i < move_amount; i++) {
+                    int check_y = player_y + actual_move + 1;
+                    if (check_y >= MAP_HEIGHT || map[stage][check_y][player_x] == '#') {
+                        break;
+                    }
+                    actual_move++;
+                }
             }
-            else if (next_y < MAP_HEIGHT) {
+            next_y = player_y + actual_move;
+            if (next_y >= 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] != '#') {
                 player_y = next_y;
             }
-
+            velocity_y++;
             if ((player_y + 1 < MAP_HEIGHT) && map[stage][player_y + 1][player_x] == '#') {
                 is_jumping = 0;
                 velocity_y = 0;
             }
-        }
+        } 
         else {
             if (floor_tile != '#' && floor_tile != 'H') {
-                if (player_y + 1 < MAP_HEIGHT) player_y++;
-                else {
+                if (player_y + 1 < MAP_HEIGHT) {
+                    player_y++;
+                } else {
                     life--;
                     if (life > 0) {
                         respawn();
@@ -363,9 +382,9 @@ void move_player(char input) {
             }
         }
     }
-
+    
     if (player_y >= MAP_HEIGHT) {
-        life--; // 맵 밖으로 이동한 경우 생명 감소(기능구현3)
+        life--;
         if (life > 0) {
             respawn();
         }
