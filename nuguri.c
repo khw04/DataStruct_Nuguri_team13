@@ -287,35 +287,46 @@ void move_player(char input) {
     on_ladder = (current_tile == 'H') || (current_tile == '#' && floor_tile == 'H');
 
     switch (input) {
-    case 'a': next_x--; break;
-    case 'd': next_x++; break;
-    case 'w': if (on_ladder) next_y--; break;
-
+        case 'a': 
+            next_x--; 
+            break;
+            
+        case 'd': 
+            next_x++; 
+            break;
+            
+        case 'w': 
+            if (on_ladder) next_y--; 
+            break;
+        
         // [권희원 수정 3] s키 로직 조건에 맞게 수정, 조건이 한눈에 이해하기엔 어렵기 때문에 종이에 적어보면서 이해하시면 좋을것 같습니다.
-    case 's':
-        if (on_ladder && (player_y + 1 < MAP_HEIGHT)) {
-            if (floor_tile != '#') next_y++;
-        }
-        else if (floor_tile == 'H' && (player_y + 1 < MAP_HEIGHT)) {
-            next_y++;
-        }
-        else if ((floor_tile == '#' && floor_floor_tile == 'H') && (player_y + 1 < MAP_HEIGHT)) {
-            next_y++;
-            intended_move = 1; // 특수 상황일때 플래그 켬
-        }
-        break;
+        case 's': 
+            if (on_ladder && (player_y + 1 < MAP_HEIGHT)) {
+                if (floor_tile != '#') next_y++;
+            }
+            else if (floor_tile == 'H' && (player_y + 1 < MAP_HEIGHT)) {
+                next_y++;
+            }
+            // 발 밑이 벽(#)이지만 그 아래가 사다리(H)인 경우 내려가게 허용
+            else if ((floor_tile == '#' && floor_floor_tile == 'H') && (player_y + 1 < MAP_HEIGHT)) {
+                next_y++;
+                intended_move = 1; // 특수 상황 플래그 ON
+            }
+            break;
 
-    case ' ':
-        if (!is_jumping && (floor_tile == '#' || on_ladder)) {
-            is_jumping = 1;
-            velocity_y = -2;
-        }
-        break;
+        case ' ':
+            if (!is_jumping && (floor_tile == '#' || on_ladder)) {
+                is_jumping = 1;
+                velocity_y = -2;
+            }
+            break;
     }
 
-    if (next_x >= 0 && next_x < MAP_WIDTH && map[stage][player_y][next_x] != '#') player_x = next_x;
-
-    // [권희원 수정 4] 플래그가 활성화 됐을때를 조건에 추가함
+    if (next_x >= 0 && next_x < MAP_WIDTH && map[stage][player_y][next_x] != '#') {
+        player_x = next_x;
+    }
+    
+    // [권희원 수정 4] 사다리 위거나 의도된 이동(intended_move)일 경우 우선 처리
     if ((on_ladder || intended_move) && (input == 'w' || input == 's')) {
 
         // [권희원 수정 5] 벽이 아닐때 OR 플래그 활성화 됐을때
@@ -324,48 +335,72 @@ void move_player(char input) {
             is_jumping = 0;
             velocity_y = 0;
         }
-    }
+    } 
     else {
+        // [김치헌] 점프 수정
         if (is_jumping) {
-            next_y = player_y + velocity_y;
-            if (next_y < 0) next_y = 0;
-            //점프 시도 시, 플레이어 위에 벽이 있으면 점프가 되지 않는 버그 수정
-            int block_at_next_y = (next_y < MAP_HEIGHT && map[stage][next_y][player_x] == '#');
-            //점프 속도 증가(중력 적용)
-            velocity_y++;
-            //위가 벽이면 한 칸 위가 비어있는지 확인, 비어있으면 한 칸 올라가고 상승 속도 0으로 처리
-            if (velocity_y <= 0 && block_at_next_y) {
-                if (player_y - 1 >= 0 && map[stage][player_y - 1][player_x] != '#') {
-                    player_y = player_y - 1;
+            int move_amount = velocity_y; // velocity_y가 중력계산으로 인한 변화 때문에 충돌 이전 값이 아닌 다음 값 사용, 로직 내 증감 없는 새로운 변수 추가
+            int actual_move = 0; // 실제 이동거리 변수 추가
+            char above_tile = (player_y - 1 >= 0) ? map[stage][player_y - 1][player_x] : ' '; // 플레이어 위 타일, 맵밖이면 ' '
+            int jumped_from_ladder = (current_tile == 'H' && above_tile == '#'); //  // 사다리 위에 있고 머리 위가 #일때 
+            
+            if (move_amount < 0) { // 상승 중 (점프)
+                for (int i = 0; i > move_amount; i--) { // 반복문으로 한 칸 이동할때마다 #과 충돌 발생 확인
+                    int check_y = player_y + actual_move - 1; // 다음 이동 좌표 확인
+                    if (check_y >= 0 && check_y < MAP_HEIGHT) {
+                        char check_tile = map[stage][check_y][player_x];
+                        
+                        if (check_tile == '#') {
+                            if (jumped_from_ladder) { 
+                                jumped_from_ladder = 0; //사다리 맨 위 H에서 점프시에는 위에 #이 있다면 블럭 관통이 한번만 일어나야하기 때문에 0으로 변경
+                                actual_move--;
+                            } else {
+                                velocity_y = 1; // 일반적인 점프 상황에서는 velocity 값을 바꿔서 다음 프레임부터는 낙하
+                                break;
+                            }
+                        } else {
+                            actual_move--; //블록이 없다면 한칸 더 위로 이동
+                        }
+                    } else {
+                        break;
+                    }
                 }
-
-                velocity_y = 0; //상승 속도 0, 더 이상 상승하지 않도록
-
+            } else if (move_amount > 0) { 
+                for (int i = 0; i < move_amount; i++) {
+                    int check_y = player_y + actual_move + 1;
+                    if (check_y >= MAP_HEIGHT || map[stage][check_y][player_x] == '#') {
+                        break;
+                    }
+                    actual_move++;
+                }
             }
-            else if (next_y < MAP_HEIGHT) {
-                player_y = next_y;
-            }
 
+            next_y = player_y + actual_move;
+            // 맵 내부이고, 이동하려는 곳이 벽이 아닐 때만 실제 좌표 반영
+            if (next_y >= 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] != '#') { //맵안에 있고 #내부에 P가 들어있는 버그 사항이 아닐 때
+                player_y = next_y; // 실제 플레이어 이동
+            }
+            
+            velocity_y++; // 다음 프레임 속도 증가
             if ((player_y + 1 < MAP_HEIGHT) && map[stage][player_y + 1][player_x] == '#') {
                 is_jumping = 0;
                 velocity_y = 0;
             }
-        }
+        } 
         else {
             if (floor_tile != '#' && floor_tile != 'H') {
-                if (player_y + 1 < MAP_HEIGHT) player_y++;
-                else {
+                if (player_y + 1 < MAP_HEIGHT) {
+                    player_y++;
+                } else {
                     life--;
-                    if (life > 0) {
-                        respawn();
-                    }
+                    if (life > 0) respawn();
                 }
             }
         }
     }
-
+    
     if (player_y >= MAP_HEIGHT) {
-        life--; // 맵 밖으로 이동한 경우 생명 감소(기능구현3)
+        life--;
         if (life > 0) {
             respawn();
         }
