@@ -279,6 +279,11 @@ void move_player(char input) {
     char floor_tile = (player_y + 1 < MAP_HEIGHT) ? map[stage][player_y + 1][player_x] : '#';
     char current_tile = map[stage][player_y][player_x];
 
+    // [권희원 수정 1] 변수 추가
+    char floor_floor_tile = (player_y + 2 < MAP_HEIGHT) ? map[stage][player_y + 2][player_x] : '#'; // 아래아래 블럭 감지
+    int intended_move = 0; // 블럭을 뚫고 가야하는 특수한 상황 플래그 변수 추가
+
+    // [권희원 수정 2] on_ladder 정의에 블록 내부일때 조건도 추가함
     on_ladder = (current_tile == 'H') || (current_tile == '#' && floor_tile == 'H');
 
     switch (input) {
@@ -294,12 +299,18 @@ void move_player(char input) {
             if (on_ladder) next_y--; 
             break;
         
+        // [권희원 수정 3] s키 로직 조건에 맞게 수정, 조건이 한눈에 이해하기엔 어렵기 때문에 종이에 적어보면서 이해하시면 좋을것 같습니다.
         case 's': 
             if (on_ladder && (player_y + 1 < MAP_HEIGHT)) {
                 if (floor_tile != '#') next_y++;
             }
             else if (floor_tile == 'H' && (player_y + 1 < MAP_HEIGHT)) {
                 next_y++;
+            }
+            // 발 밑이 벽(#)이지만 그 아래가 사다리(H)인 경우 내려가게 허용
+            else if ((floor_tile == '#' && floor_floor_tile == 'H') && (player_y + 1 < MAP_HEIGHT)) {
+                next_y++;
+                intended_move = 1; // 특수 상황 플래그 ON
             }
             break;
 
@@ -315,21 +326,25 @@ void move_player(char input) {
         player_x = next_x;
     }
     
-    if (on_ladder && (input == 'w' || input == 's')) {
-        if (next_y >= 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] != '#') {
+    // [권희원 수정 4] 사다리 위거나 의도된 이동(intended_move)일 경우 우선 처리
+    if ((on_ladder || intended_move) && (input == 'w' || input == 's')) {
+
+        // [권희원 수정 5] 벽이 아닐때 OR 플래그 활성화 됐을때
+        if (next_y >= 0 && next_y < MAP_HEIGHT && (map[stage][next_y][player_x] != '#' || intended_move)) {
             player_y = next_y;
             is_jumping = 0;
             velocity_y = 0;
         }
     } 
     else {
+        // [김치헌] 점프 수정
         if (is_jumping) {
             int move_amount = velocity_y; // velocity_y가 중력계산으로 인한 변화 때문에 충돌 이전 값이 아닌 다음 값 사용, 로직 내 증감 없는 새로운 변수 추가
             int actual_move = 0; // 실제 이동거리 변수 추가
             char above_tile = (player_y - 1 >= 0) ? map[stage][player_y - 1][player_x] : ' '; // 플레이어 위 타일, 맵밖이면 ' '
-            int jumped_from_ladder = (current_tile == 'H' && above_tile == '#'); // 사다리 위에 있고 머리 위가 #일때 
+            int jumped_from_ladder = (current_tile == 'H' && above_tile == '#'); //  // 사다리 위에 있고 머리 위가 #일때 
             
-            if (move_amount < 0) { // 점프 중일 때
+            if (move_amount < 0) { // 상승 중 (점프)
                 for (int i = 0; i > move_amount; i--) { // 반복문으로 한 칸 이동할때마다 #과 충돌 발생 확인
                     int check_y = player_y + actual_move - 1; // 다음 이동 좌표 확인
                     if (check_y >= 0 && check_y < MAP_HEIGHT) {
@@ -337,7 +352,7 @@ void move_player(char input) {
                         
                         if (check_tile == '#') {
                             if (jumped_from_ladder) { 
-                                jumped_from_ladder = 0; // //사다리 맨 위 H에서 점프시에는 위에 #이 있다면 블럭 관통이 한번만 일어나야하기 때문에 0으로 변경
+                                jumped_from_ladder = 0; //사다리 맨 위 H에서 점프시에는 위에 #이 있다면 블럭 관통이 한번만 일어나야하기 때문에 0으로 변경
                                 actual_move--;
                             } else {
                                 velocity_y = 1; // 일반적인 점프 상황에서는 velocity 값을 바꿔서 다음 프레임부터는 낙하
@@ -350,7 +365,7 @@ void move_player(char input) {
                         break;
                     }
                 }
-            } else if (move_amount > 0) {
+            } else if (move_amount > 0) { 
                 for (int i = 0; i < move_amount; i++) {
                     int check_y = player_y + actual_move + 1;
                     if (check_y >= MAP_HEIGHT || map[stage][check_y][player_x] == '#') {
@@ -359,10 +374,13 @@ void move_player(char input) {
                     actual_move++;
                 }
             }
+
             next_y = player_y + actual_move;
+            // 맵 내부이고, 이동하려는 곳이 벽이 아닐 때만 실제 좌표 반영
             if (next_y >= 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] != '#') { //맵안에 있고 #내부에 P가 들어있는 버그 사항이 아닐 때
-                player_y = next_y; //실제 플레이어 이동
+                player_y = next_y; // 실제 플레이어 이동
             }
+            
             velocity_y++; // 다음 프레임 속도 증가
             if ((player_y + 1 < MAP_HEIGHT) && map[stage][player_y + 1][player_x] == '#') {
                 is_jumping = 0;
@@ -375,9 +393,7 @@ void move_player(char input) {
                     player_y++;
                 } else {
                     life--;
-                    if (life > 0) {
-                        respawn();
-                    }
+                    if (life > 0) respawn();
                 }
             }
         }
