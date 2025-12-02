@@ -109,6 +109,21 @@ if (c == 0 || c == 224) {
 #endif
 }
 
+void draw_life(int life) { // 하트가 없어지지 않는 현상 때문에 추가
+#ifdef _WIN32
+    gotoxy(0, 0);
+    printf("Stage: %d | Score: %d | Life: ", stage + 1, score);
+
+    for (int i = 0; i < life; i++)
+        printf("♥");
+//남은 자리는 공백으로 덮어쓰기
+    for (int i = life; i < MAX_LIFE; i++)
+        printf("  ");
+    
+    fflush(stdout); //바로 화면에 반영
+#endif
+}
+
 void enable_ansi() {
 #ifdef _WIN32
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
