@@ -80,12 +80,16 @@ void delay(int ms) {
 
 void clrscr() {
 #ifdef _WIN32
-    system("cls");
+    ;
 #else
     printf("\x1b[2J\x1b[H");
     fflush(stdout);
 #endif
 }
+
+void hide_cursor() { printf("\e[?25l"); }
+void show_cursor() { printf("\e[?25h"); }
+void gotoxy(int x, int y) { printf("\033[%d;%dH", y, x); }
 
 char cross_getch() {
 #ifdef _WIN32
@@ -105,9 +109,22 @@ if (c == 0 || c == 224) {
 #endif
 }
 
+void enable_ansi() {
+#ifdef _WIN32
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut == INVALID_HANDLE_VALUE) return;
+    DWORD dwmode = 0;
+    if (!GetConsoleMode(hOut, &dwmode)) return;
+    dwmode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    SetConsoleMode(hOut, dwmode);
+#endif
+}
+
 int main() {
 #ifdef _WIN32
     system("chcp 65001 > nul"); //한글 깨짐 수정
+    enable_ansi();
+    hide_cursor();
 #endif
     srand(time(NULL));
     enable_raw_mode();
@@ -163,6 +180,9 @@ int main() {
         }
     }
 
+#ifdef _WIN32
+    show_cursor();
+#endif
     disable_raw_mode();
     return 0;
 }
@@ -245,7 +265,12 @@ void respawn(){
 
 // 게임 화면 그리기
 void draw_game() {
+#ifdef _WIN32
+    gotoxy(1,1);
+#else   
     clrscr();
+#endif
+
     printf("Stage: %d | Score: %d | Life: ", stage + 1, score); // 화면에 생명 표시 추가(기능구현3)
     for (int i = 0; i < life; i++) {
         printf("♥ ");
