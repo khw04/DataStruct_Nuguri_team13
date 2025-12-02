@@ -166,6 +166,10 @@ int main() {
 
 
 // 터미널 Raw 모드 활성화/비활성화
+#ifdef _WIN32
+void enable_raw_mode() {}
+void disable_raw_mode() {}
+#else
 void disable_raw_mode() { tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios); }
 void enable_raw_mode() {
     tcgetattr(STDIN_FILENO, &orig_termios);
@@ -174,6 +178,7 @@ void enable_raw_mode() {
     raw.c_lflag &= ~(ECHO | ICANON);
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
+#endif
 
 // 맵 파일 로드
 void load_maps() {
