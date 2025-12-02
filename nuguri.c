@@ -324,27 +324,27 @@ void move_player(char input) {
     } 
     else {
         if (is_jumping) {
-            int move_amount = velocity_y;
-            int actual_move = 0;
-            char above_tile = (player_y - 1 >= 0) ? map[stage][player_y - 1][player_x] : ' ';
-            int jumped_from_ladder = (current_tile == 'H' && above_tile == '#');
+            int move_amount = velocity_y; // velocity_y가 중력계산으로 인한 변화 때문에 충돌 이전 값이 아닌 다음 값 사용, 로직 내 증감 없는 새로운 변수 추가
+            int actual_move = 0; // 실제 이동거리 변수 추가
+            char above_tile = (player_y - 1 >= 0) ? map[stage][player_y - 1][player_x] : ' '; // 플레이어 위 타일, 맵밖이면 ' '
+            int jumped_from_ladder = (current_tile == 'H' && above_tile == '#'); // 사다리 위에 있고 머리 위가 #일때 
             
-            if (move_amount < 0) {
-                for (int i = 0; i > move_amount; i--) {
-                    int check_y = player_y + actual_move - 1;
+            if (move_amount < 0) { // 점프 중일 때
+                for (int i = 0; i > move_amount; i--) { // 반복문으로 한 칸 이동할때마다 #과 충돌 발생 확인
+                    int check_y = player_y + actual_move - 1; // 다음 이동 좌표 확인
                     if (check_y >= 0 && check_y < MAP_HEIGHT) {
                         char check_tile = map[stage][check_y][player_x];
                         
                         if (check_tile == '#') {
-                            if (jumped_from_ladder) {
-                                jumped_from_ladder = 0;
+                            if (jumped_from_ladder) { 
+                                jumped_from_ladder = 0; // //사다리 맨 위 H에서 점프시에는 위에 #이 있다면 블럭 관통이 한번만 일어나야하기 때문에 0으로 변경
                                 actual_move--;
                             } else {
-                                velocity_y = 1;
+                                velocity_y = 1; // 일반적인 점프 상황에서는 velocity 값을 바꿔서 다음 프레임부터는 낙하
                                 break;
                             }
                         } else {
-                            actual_move--;
+                            actual_move--; //블록이 없다면 한칸 더 위로 이동
                         }
                     } else {
                         break;
@@ -360,10 +360,10 @@ void move_player(char input) {
                 }
             }
             next_y = player_y + actual_move;
-            if (next_y >= 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] != '#') {
-                player_y = next_y;
+            if (next_y >= 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] != '#') { //맵안에 있고 #내부에 P가 들어있는 버그 사항이 아닐 때
+                player_y = next_y; //실제 플레이어 이동
             }
-            velocity_y++;
+            velocity_y++; // 다음 프레임 속도 증가
             if ((player_y + 1 < MAP_HEIGHT) && map[stage][player_y + 1][player_x] == '#') {
                 is_jumping = 0;
                 velocity_y = 0;
