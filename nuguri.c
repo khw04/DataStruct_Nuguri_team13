@@ -1,9 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+    #include <windows.h>
+    #include <conio.h>
+    #ifndef usleep // 윈도우에는 usleep이 없으므로 Sleep으로 대체, 단위 ms
+    #define usleep(x) Sleep((x)/1000) 
+    #endif
+    #ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING //
+    #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+    #endif
+#else
 #include <unistd.h>
 #include <termios.h>
 #include <fcntl.h>
+#endif
 #include <time.h>
 
 // 맵 및 게임 요소 정의 (수정된 부분)
@@ -45,7 +56,10 @@ Coin coins[MAX_COINS];
 int coin_count = 0;
 
 // 터미널 설정
+// 윈도우에서는 termios를 사용하지 않으므로 제외
+#ifndef _WIN32
 struct termios orig_termios;
+#endif
 
 // 함수 선언
 void disable_raw_mode();
@@ -65,7 +79,76 @@ char show_ending_screen(int score); // 함수 추가 (미셸-기능구현4)
 char wait_for_q_or_r(); // 함수 추가 (미셸-기능구현4-1)
 int kbhit();
 
+void delay(int ms) {
+    #ifdef _WIN32
+    Sleep(ms);
+    #else
+    usleep(ms * 1000);
+    #endif
+}
+
+void clrscr() {
+#ifdef _WIN32
+    ;   //윈도우에서는 전체 화면 지우지 않음 (커서 이동함)
+#else
+    printf("\x1b[2J\x1b[H"); // 터미널 화면 지우기 및 커서 이동
+    fflush(stdout);
+#endif
+}
+
+void hide_cursor() { printf("\e[?25l"); } // 커서 숨기기
+void show_cursor() { printf("\e[?25h"); } // 커서 보이기
+void gotoxy(int x, int y) { printf("\033[%d;%dH", y, x); } // 커서를 (x, y) 위치로 이동함
+
+char cross_getch() {
+#ifdef _WIN32
+int c = _getch();
+if (c == 0 || c == 224) { // 방향키 처리
+    int code = _getch();
+    switch(code) {
+        case 72: c = 'w'; break; // up
+        case 80: c = 's'; break; // down
+        case 75: c = 'a'; break; // left
+        case 77: c = 'd'; break; // right
+    }
+}
+    return (char)c;
+#else
+    return getchar();
+#endif
+}
+
+void draw_life() { // 하트가 없어지지 않는 현상 때문에 추가
+#ifdef _WIN32
+    gotoxy(0, 0);
+    printf("Stage: %d | Score: %d | Life: ", stage + 1, score);
+
+    for (int i = 0; i < life; i++) {
+        printf("♥ "); }
+// 남은 자리는 공백으로 덮어쓰기
+    for (int i = life; i < MAX_LIFE; i++) {
+        printf("  "); }
+    fflush(stdout); // 바로 화면에 반영
+#endif
+}
+
+void enable_ansi() { // 윈도우 콘솔에서 ANSI 활성화
+#ifdef _WIN32
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut == INVALID_HANDLE_VALUE) return;
+    DWORD dwmode = 0;
+    if (!GetConsoleMode(hOut, &dwmode)) return;
+    dwmode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING; // ANSI Escape 코드 사용 허용
+    SetConsoleMode(hOut, dwmode);
+#endif
+}
+
 int main() {
+#ifdef _WIN32
+    system("chcp 65001 > nul"); // 한글 깨짐 수정
+    enable_ansi();
+    hide_cursor();
+#endif
     srand(time(NULL));
     enable_raw_mode();
     show_title_screen(); // 타이틀 화면 표시 (미셸-기능구현4)
@@ -77,7 +160,7 @@ int main() {
 
     while (!game_over && stage < MAX_STAGES) {
         if (kbhit()) {
-            c = getchar();
+            c = cross_getch();
             if (c == 'q') {
                 game_over = 1;
                 continue;
@@ -91,15 +174,18 @@ int main() {
                 case 'D': c = 'a'; break; // Left
                 }
             }
-            while (kbhit()) getchar();  // 입력 버퍼 완전 삭제 (미셸)
-        }
-        else {
+            while (kbhit()) cross_getch();  // 입력 버퍼 완전 삭제 (미셸)
+        } else {
             c = '\0';
         }
 
         update_game(c);
         draw_game();
+    #ifdef _WIN32
+        usleep(50000); //속도 비슷하게 맞춤
+    #else
         usleep(90000);
+    #endif
         // 생명이 0일때 게임 오버
         if (life <= 0) {
             game_over = 1;
@@ -123,6 +209,9 @@ int main() {
         }
     }
 
+#ifdef _WIN32
+    show_cursor();
+#endif
     char end_choice;
 
     if (life <= 0) {
@@ -152,6 +241,10 @@ int main() {
 
 
 // 터미널 Raw 모드 활성화/비활성화
+#ifdef _WIN32
+void enable_raw_mode() {} // 윈도우에서는 Raw 모드 필요 없음, _getch()로 대체
+void disable_raw_mode() {}
+#else
 void disable_raw_mode() { tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios); }
 void enable_raw_mode() {
     tcgetattr(STDIN_FILENO, &orig_termios);
@@ -160,6 +253,7 @@ void enable_raw_mode() {
     raw.c_lflag &= ~(ECHO | ICANON);
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
+#endif
 
 // 맵 파일 로드
 void load_maps() {
@@ -225,11 +319,16 @@ void respawn() {
 
 // 게임 화면 그리기
 void draw_game() {
-    printf("\x1b[2J\x1b[H");
+#ifdef _WIN32
+    draw_life();
+#else   
+    clrscr();
     printf("Stage: %d | Score: %d | Life: ", stage + 1, score); // 화면에 생명 표시 추가(기능구현3)
     for (int i = 0; i < life; i++) {
         printf("♥ ");
     }
+#endif
+
     printf("\n");
     printf("조작: ← → (이동), ↑ ↓ (사다리), Space (점프), q (종료)\n");
 
@@ -521,6 +620,9 @@ char show_ending_screen(int score) {
 
 // 비동기 키보드 입력 확인
 int kbhit() {
+#ifdef _WIN32
+    return _kbhit(); 
+#else
     struct termios oldt, newt;
     int ch;
     int oldf;
@@ -538,4 +640,5 @@ int kbhit() {
         return 1;
     }
     return 0;
+#endif
 }
