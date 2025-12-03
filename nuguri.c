@@ -72,6 +72,11 @@ void move_player(char input);
 void respawn(); // 리스폰 함수 추가(기능구현3)
 void move_enemies();
 void check_collisions();
+void press_any_key(); // (미셸-기능구현4)
+void show_title_screen(); // 한수 추가 (미셸-기능구현4)
+char show_game_over_screen(int score); // 함수 추가 (미셸-기능구현4)
+char show_ending_screen(int score); // 함수 추가 (미셸-기능구현4)
+char wait_for_q_or_r(); // 함수 추가 (미셸-기능구현4-1)
 int kbhit();
 
 void delay(int ms) {
@@ -146,6 +151,7 @@ int main() {
 #endif
     srand(time(NULL));
     enable_raw_mode();
+    show_title_screen(); // 타이틀 화면 표시 (미셸-기능구현4)
     load_maps();
     init_stage();
 
@@ -162,10 +168,10 @@ int main() {
             if (c == '\x1b') {
                 getchar(); // '['
                 switch (getchar()) {
-                    case 'A': c = 'w'; break; // Up
-                    case 'B': c = 's'; break; // Down
-                    case 'C': c = 'd'; break; // Right
-                    case 'D': c = 'a'; break; // Left
+                case 'A': c = 'w'; break; // Up
+                case 'B': c = 's'; break; // Down
+                case 'C': c = 'd'; break; // Right
+                case 'D': c = 'a'; break; // Left
                 }
             }
             while (kbhit()) cross_getch();  // 입력 버퍼 완전 삭제 (미셸)
@@ -181,11 +187,11 @@ int main() {
         usleep(90000);
     #endif
         // 생명이 0일때 게임 오버
-        if(life <=0){
-            game_over =1;
-            printf("\x1b[2J\x1b[H");
+        if (life <= 0) {
+            game_over = 1;
+            /*printf("\x1b[2J\x1b[H");
             printf("GAME OVER!\n");
-            printf("FINAL SCORE: %d\n",score);
+            printf("FINAL SCORE: %d\n",score);*/
         }
 
         if (map[stage][player_y][player_x] == 'E') {
@@ -193,11 +199,12 @@ int main() {
             score += 100;
             if (stage < MAX_STAGES) {
                 init_stage();
-            } else {
+            }
+            else {
                 game_over = 1;
-                printf("\x1b[2J\x1b[H");
+                /*printf("\x1b[2J\x1b[H");
                 printf("축하합니다! 모든 스테이지를 클리어했습니다!\n");
-                printf("최종 점수: %d\n", score);
+                printf("최종 점수: %d\n", score);*/
             }
         }
     }
@@ -205,9 +212,32 @@ int main() {
 #ifdef _WIN32
     show_cursor();
 #endif
+    char end_choice;
+
+    if (life <= 0) {
+        end_choice = show_game_over_screen(score);
+    }
+    else if (stage >= MAX_STAGES) {
+        end_choice = show_ending_screen(score);
+    }
+    else {
+        end_choice = 'q';  // q로 나간 경우 (미셸-기능구현4-1)
+    }
+
+    if (end_choice == 'r') { // 다시 시작인지 종료인지 확인 (미셸-기능구현4-1)
+        // 모든 상태 초기화 후 재시작 (미셸-기능구현4-1)
+        stage = 0;
+        score = 0;
+        life = MAX_LIFE;
+
+        init_stage();
+        return main();  // 메인 다시 실행 (미셸-기능구현4-1)
+    }
+
     disable_raw_mode();
     return 0;
 }
+
 
 
 // 터미널 Raw 모드 활성화/비활성화
@@ -227,7 +257,7 @@ void enable_raw_mode() {
 
 // 맵 파일 로드
 void load_maps() {
-    FILE *file = fopen("map.txt", "r");
+    FILE* file = fopen("map.txt", "r");
     if (!file) {
         perror("map.txt 파일을 열 수 없습니다.");
         exit(1);
@@ -266,18 +296,20 @@ void init_stage() {
                 player_y = y;
                 respawn_x = x; //리스폰 위치 저장(기능구현3)
                 respawn_y = y; // 같음(기능구현3)
-            } else if (cell == 'X' && enemy_count < MAX_ENEMIES) {
-                enemies[enemy_count] = (Enemy){x, y, (rand() % 2) * 2 - 1};
+            }
+            else if (cell == 'X' && enemy_count < MAX_ENEMIES) {
+                enemies[enemy_count] = (Enemy){ x, y, (rand() % 2) * 2 - 1 };
                 enemy_count++;
-            } else if (cell == 'C' && coin_count < MAX_COINS) {
-                coins[coin_count++] = (Coin){x, y, 0};
+            }
+            else if (cell == 'C' && coin_count < MAX_COINS) {
+                coins[coin_count++] = (Coin){ x, y, 0 };
             }
         }
     }
 }
 
 //시작지점 리스폰 함수(기능구현3)
-void respawn(){
+void respawn() {
     player_x = respawn_x; // 플레이어 위치 초기화
     player_y = respawn_y;
     is_jumping = 0; // 플레이어 상태 초기화
@@ -301,17 +333,18 @@ void draw_game() {
     printf("조작: ← → (이동), ↑ ↓ (사다리), Space (점프), q (종료)\n");
 
     char display_map[MAP_HEIGHT][MAP_WIDTH + 1];
-    for(int y=0; y < MAP_HEIGHT; y++) {
-        for(int x=0; x < MAP_WIDTH; x++) {
+    for (int y = 0; y < MAP_HEIGHT; y++) {
+        for (int x = 0; x < MAP_WIDTH; x++) {
             char cell = map[stage][y][x];
             if (cell == 'S' || cell == 'X' || cell == 'C') {
                 display_map[y][x] = ' ';
-            } else {
+            }
+            else {
                 display_map[y][x] = cell;
             }
         }
     }
-    
+
     for (int i = 0; i < coin_count; i++) {
         if (!coins[i].collected) {
             display_map[coins[i].y][coins[i].x] = 'C';
@@ -325,7 +358,7 @@ void draw_game() {
     display_map[player_y][player_x] = 'P';
 
     for (int y = 0; y < MAP_HEIGHT; y++) {
-        for(int x=0; x< MAP_WIDTH; x++){
+        for (int x = 0; x < MAP_WIDTH; x++) {
             printf("%c", display_map[y][x]);
         }
         printf("\n");
@@ -353,21 +386,30 @@ void move_player(char input) {
     on_ladder = (current_tile == 'H') || (current_tile == '#' && floor_tile == 'H');
 
     switch (input) {
-        case 'a': next_x--; break;
-        case 'd': next_x++; break;
-        case 'w': if (on_ladder) next_y--; break;
+        case 'a': 
+            next_x--; 
+            break;
+            
+        case 'd': 
+            next_x++; 
+            break;
+            
+        case 'w': 
+            if (on_ladder) next_y--; 
+            break;
         
         // [권희원 수정 3] s키 로직 조건에 맞게 수정, 조건이 한눈에 이해하기엔 어렵기 때문에 종이에 적어보면서 이해하시면 좋을것 같습니다.
         case 's': 
-            if (on_ladder && (player_y + 1 < MAP_HEIGHT)){
+            if (on_ladder && (player_y + 1 < MAP_HEIGHT)) {
                 if (floor_tile != '#') next_y++;
             }
-            else if (floor_tile == 'H' && (player_y + 1 < MAP_HEIGHT)){
+            else if (floor_tile == 'H' && (player_y + 1 < MAP_HEIGHT)) {
                 next_y++;
             }
-            else if ((floor_tile == '#' && floor_floor_tile == 'H') && (player_y + 1 < MAP_HEIGHT)){
+            // 발 밑이 벽(#)이지만 그 아래가 사다리(H)인 경우 내려가게 허용
+            else if ((floor_tile == '#' && floor_floor_tile == 'H') && (player_y + 1 < MAP_HEIGHT)) {
                 next_y++;
-                intended_move = 1; // 특수 상황일때 플래그 켬
+                intended_move = 1; // 특수 상황 플래그 ON
             }
             break;
 
@@ -379,58 +421,86 @@ void move_player(char input) {
             break;
     }
 
-    if (next_x >= 0 && next_x < MAP_WIDTH && map[stage][player_y][next_x] != '#') player_x = next_x;
+    if (next_x >= 0 && next_x < MAP_WIDTH && map[stage][player_y][next_x] != '#') {
+        player_x = next_x;
+    }
     
-    // [권희원 수정 4] 플래그가 활성화 됐을때를 조건에 추가함
+    // [권희원 수정 4] 사다리 위거나 의도된 이동(intended_move)일 경우 우선 처리
     if ((on_ladder || intended_move) && (input == 'w' || input == 's')) {
-        
+
         // [권희원 수정 5] 벽이 아닐때 OR 플래그 활성화 됐을때
-        if(next_y >= 0 && next_y < MAP_HEIGHT && (map[stage][next_y][player_x] != '#' || intended_move)) {
+        if (next_y >= 0 && next_y < MAP_HEIGHT && (map[stage][next_y][player_x] != '#' || intended_move)) {
             player_y = next_y;
             is_jumping = 0;
             velocity_y = 0;
         }
     } 
     else {
+        // [김치헌] 점프 수정
         if (is_jumping) {
-            next_y = player_y + velocity_y;
-            if(next_y < 0) next_y = 0;
-            //점프 시도 시, 플레이어 위에 벽이 있으면 점프가 되지 않는 버그 수정 [정혜영 수정]
-            int block_at_next_y = (next_y < MAP_HEIGHT && map[stage][next_y][player_x] == '#');
-            //점프 속도 증가(중력 적용)
-            velocity_y++;
-            //위가 벽이면 한 칸 위가 비어있는지 확인, 비어있으면 한 칸 올라가고 상승 속도 0으로 처리
-            if (velocity_y <= 0 && block_at_next_y) {
-                if (player_y - 1 >= 0 && map[stage][player_y - 1][player_x] != '#') {
-                    player_y = player_y - 1; 
-                }
-
-                velocity_y = 0; //상승 속도 0, 더 이상 상승하지 않도록
+            int move_amount = velocity_y; // velocity_y가 중력계산으로 인한 변화 때문에 충돌 이전 값이 아닌 다음 값 사용, 로직 내 증감 없는 새로운 변수 추가
+            int actual_move = 0; // 실제 이동거리 변수 추가
+            char above_tile = (player_y - 1 >= 0) ? map[stage][player_y - 1][player_x] : ' '; // 플레이어 위 타일, 맵밖이면 ' '
+            int jumped_from_ladder = (current_tile == 'H' && above_tile == '#'); //  // 사다리 위에 있고 머리 위가 #일때 
             
-            } else if (next_y < MAP_HEIGHT) {
-                player_y = next_y;
+            if (move_amount < 0) { // 상승 중 (점프)
+                for (int i = 0; i > move_amount; i--) { // 반복문으로 한 칸 이동할때마다 #과 충돌 발생 확인
+                    int check_y = player_y + actual_move - 1; // 다음 이동 좌표 확인
+                    if (check_y >= 0 && check_y < MAP_HEIGHT) {
+                        char check_tile = map[stage][check_y][player_x];
+                        
+                        if (check_tile == '#') {
+                            if (jumped_from_ladder) { 
+                                jumped_from_ladder = 0; //사다리 맨 위 H에서 점프시에는 위에 #이 있다면 블럭 관통이 한번만 일어나야하기 때문에 0으로 변경
+                                actual_move--;
+                            } else {
+                                velocity_y = 1; // 일반적인 점프 상황에서는 velocity 값을 바꿔서 다음 프레임부터는 낙하
+                                break;
+                            }
+                        } else {
+                            actual_move--; //블록이 없다면 한칸 더 위로 이동
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            } else if (move_amount > 0) { 
+                for (int i = 0; i < move_amount; i++) {
+                    int check_y = player_y + actual_move + 1;
+                    if (check_y >= MAP_HEIGHT || map[stage][check_y][player_x] == '#') {
+                        break;
+                    }
+                    actual_move++;
+                }
+            }
+
+            next_y = player_y + actual_move;
+            // 맵 내부이고, 이동하려는 곳이 벽이 아닐 때만 실제 좌표 반영
+            if (next_y >= 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] != '#') { //맵안에 있고 #내부에 P가 들어있는 버그 사항이 아닐 때
+                player_y = next_y; // 실제 플레이어 이동
             }
             
+            velocity_y++; // 다음 프레임 속도 증가
             if ((player_y + 1 < MAP_HEIGHT) && map[stage][player_y + 1][player_x] == '#') {
                 is_jumping = 0;
                 velocity_y = 0;
             }
-        } else {
+        } 
+        else {
             if (floor_tile != '#' && floor_tile != 'H') {
-                 if (player_y + 1 < MAP_HEIGHT) player_y++;
-                 else {
+                if (player_y + 1 < MAP_HEIGHT) {
+                    player_y++;
+                } else {
                     life--;
-                    if(life>0){
-                        respawn();
-                    }
-                 }
+                    if (life > 0) respawn();
+                }
             }
         }
     }
     
     if (player_y >= MAP_HEIGHT) {
-        life--; // 맵 밖으로 이동한 경우 생명 감소(기능구현3)
-        if(life>0){
+        life--;
+        if (life > 0) {
             respawn();
         }
     }
@@ -443,7 +513,8 @@ void move_enemies() {
         int next_x = enemies[i].x + enemies[i].dir;
         if (next_x < 0 || next_x >= MAP_WIDTH || map[stage][enemies[i].y][next_x] == '#' || (enemies[i].y + 1 < MAP_HEIGHT && map[stage][enemies[i].y + 1][next_x] == ' ')) {
             enemies[i].dir *= -1;
-        } else {
+        }
+        else {
             enemies[i].x = next_x;
         }
     }
@@ -455,7 +526,7 @@ void check_collisions() {
         if (player_x == enemies[i].x && player_y == enemies[i].y) {
             life--; // 닿으면 생명 감소(기능구현3)
             score = (score > 50) ? score - 50 : 0;
-            if(life > 0){ //생명>0이면 리스폰 함수 호출(기능구현3)
+            if (life > 0) { //생명>0이면 리스폰 함수 호출(기능구현3)
                 respawn();
             }
             return;
@@ -468,6 +539,84 @@ void check_collisions() {
         }
     }
 }
+
+// q 또는 r이 입력될 때까지 기다리고 그 값을 리턴 (미셸-기능구현4-1)
+char wait_for_q_or_r() {
+    char c = '\0';
+
+    while (1) {
+        if (kbhit()) {
+            c = getchar();
+            if (c == 'q' || c == 'r')
+                return c;
+        }
+    }
+}
+
+//  타이틀 / 게임오버 / 클리어 화면 (미셸-기능구현4)
+void press_any_key() {
+    while (!kbhit()) {}
+    getchar();
+}
+
+// 타이틀 화면 (NUGURI) (미셸-기능구현4)
+void show_title_screen() {
+    printf("\033[2J\033[1;1H");
+
+    printf("           ▄▄   ▄ ▄    ▄   ▄▄▄  ▄    ▄ ▄▄▄▄▄  ▄▄▄▄▄          \n");
+    printf("           █▀▄  █ █    █ ▄▀   ▀ █    █ █   ▀█   █            \n");
+    printf("           █ █▄ █ █    █ █   ▄▄ █    █ █▄▄▄▄▀   █            \n");
+    printf("           █  █ █ █    █ █    █ █    █ █   ▀▄   █            \n");
+    printf("           █   ██ ▀▄▄▄▄▀  ▀▄▄▄▀ ▀▄▄▄▄▀ █    █ ▄▄█▄▄          \n");
+    printf("                                                             \n");
+    printf("                                                             \n");
+    printf("                                                              \n");
+
+    printf("             ▶ 아무 키나 눌러 게임을 시작하세요 ◀          \n");
+
+    press_any_key();
+}
+
+// 게임 오버 화면 (GAME OVER) (미셸-기능구현4)
+char show_game_over_screen(int score) {
+    printf("\033[2J\033[1;1H");
+
+    printf("   ▄▄▄    ▄▄   ▄    ▄ ▄▄▄▄▄▄         ▄▄▄▄  ▄    ▄ ▄▄▄▄▄▄ ▄▄▄▄▄ \n");
+    printf(" ▄▀   ▀   ██   ██  ██ █             ▄▀  ▀▄ ▀▄  ▄▀ █      █   ▀█\n");
+    printf(" █   ▄▄  █  █  █ ██ █ █▄▄▄▄▄        █    █  █  █  █▄▄▄▄▄ █▄▄▄▄▀\n");
+    printf(" █    █  █▄▄█  █ ▀▀ █ █             █    █  ▀▄▄▀  █      █   ▀▄\n");
+    printf("  ▀▄▄▄▀ █    █ █    █ █▄▄▄▄▄         █▄▄█    ██   █▄▄▄▄▄ █    █\n");
+    printf("                                                               \n");
+    printf("                                                               \n");
+    printf("                                                               \n");
+    printf("                 ▶ FINAL SCORE : %d ◀\n", score);
+    printf("                                                               \n");
+    printf("              r - 다시 시작   |   q - 종료                     \n");
+
+    return wait_for_q_or_r();
+}
+
+// 클리어 화면 (CLEAR) (미셸-기능구현4)
+char show_ending_screen(int score) {
+    printf("\033[2J\033[1;1H");
+
+    printf("             ▄▄▄  ▄      ▄▄▄▄▄▄   ▄▄   ▄▄▄▄▄    ▄            \n");
+    printf("           ▄▀   ▀ █      █        ██   █   ▀█   █            \n");
+    printf("           █      █      █▄▄▄▄▄  █  █  █▄▄▄▄▀   █            \n");
+    printf("           █      █      █       █▄▄█  █   ▀▄   ▀            \n");
+    printf("            ▀▄▄▄▀ █▄▄▄▄▄ █▄▄▄▄▄ █    █ █    █   █            \n");
+    printf("                                                             \n");
+    printf("                                                             \n");
+    printf("                                                             \n");
+
+    printf("                모든 스테이지 클리어! \n");
+    printf("               ▶ FINAL SCORE : %d ◀\n", score);
+    printf("                                                             \n");
+    printf("                                                             \n");
+    printf("              r - 다시 시작   |   q - 종료                   \n");
+    return wait_for_q_or_r();
+}
+
 
 // 비동기 키보드 입력 확인
 int kbhit() {
@@ -486,7 +635,7 @@ int kbhit() {
     ch = getchar();
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
     fcntl(STDIN_FILENO, F_SETFL, oldf);
-    if(ch != EOF) {
+    if (ch != EOF) {
         ungetc(ch, stdin);
         return 1;
     }
