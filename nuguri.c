@@ -7,6 +7,9 @@
     #ifndef usleep // 윈도우에는 usleep이 없으므로 Sleep으로 대체, 단위 ms
     #define usleep(x) Sleep((x)/1000) 
     #endif
+    #ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING //
+    #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+    #endif
 #else
 #include <unistd.h>
 #include <termios.h>
@@ -173,7 +176,7 @@ int main() {
         update_game(c);
         draw_game();
     #ifdef _WIN32
-        usleep(20000); //속도 비슷하게 맞춤
+        usleep(50000); //속도 비슷하게 맞춤
     #else
         usleep(90000);
     #endif
