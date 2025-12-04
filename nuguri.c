@@ -7,7 +7,7 @@
     #ifndef usleep // 윈도우에는 usleep이 없으므로 Sleep으로 대체, 단위 ms
     #define usleep(x) Sleep((x)/1000) 
     #endif
-    #ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING //
+    #ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING 
     #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
     #endif
 #else
@@ -61,7 +61,24 @@ int coin_count = 0;
 struct termios orig_termios;
 #endif
 
-// 함수 선언
+// 추가 기능 관련 프로토타입
+void draw_life();
+void enable_ansi();
+void clrscr();
+void hide_cursor();
+void show_cursor();
+void gotoxy(int x, int y);
+char cross_getch();
+void delay(int ms);
+void beep();
+void respawn(); // 리스폰 함수 추가(기능구현3)
+void press_any_key(); // (미셸-기능구현4)
+void show_title_screen(); // 함수 추가 (미셸-기능구현4)
+char show_game_over_screen(int score); // 함수 추가 (미셸-기능구현4)
+char show_ending_screen(int score); // 함수 추가 (미셸-기능구현4)
+char wait_for_q_or_r(); // 함수 추가 (미셸-기능구현4-1)
+
+// 기존 코드 프로토타입
 void disable_raw_mode();
 void enable_raw_mode();
 void load_maps();
@@ -69,15 +86,10 @@ void init_stage();
 void draw_game();
 void update_game(char input);
 void move_player(char input);
-void respawn(); // 리스폰 함수 추가(기능구현3)
 void move_enemies();
 void check_collisions();
-void press_any_key(); // (미셸-기능구현4)
-void show_title_screen(); // 한수 추가 (미셸-기능구현4)
-char show_game_over_screen(int score); // 함수 추가 (미셸-기능구현4)
-char show_ending_screen(int score); // 함수 추가 (미셸-기능구현4)
-char wait_for_q_or_r(); // 함수 추가 (미셸-기능구현4-1)
 int kbhit();
+
 
 void delay(int ms) {
     #ifdef _WIN32
@@ -154,6 +166,7 @@ int main() {
     show_title_screen(); // 타이틀 화면 표시 (미셸-기능구현4)
     load_maps();
     init_stage();
+    printf("\x1b[2J"); // 윈도우에선 화면 전체 클리어
 
     char c = '\0';
     int game_over = 0;
@@ -238,7 +251,9 @@ int main() {
     return 0;
 }
 
-
+void beep(){
+    printf("\a"); 
+}
 
 // 터미널 Raw 모드 활성화/비활성화
 #ifdef _WIN32
@@ -417,6 +432,7 @@ void move_player(char input) {
             if (!is_jumping && (floor_tile == '#' || on_ladder)) {
                 is_jumping = 1;
                 velocity_y = -2;
+                beep();
             }
             break;
     }
@@ -524,6 +540,7 @@ void move_enemies() {
 void check_collisions() {
     for (int i = 0; i < enemy_count; i++) {
         if (player_x == enemies[i].x && player_y == enemies[i].y) {
+            beep(); // 적이랑 닿으면 소리남
             life--; // 닿으면 생명 감소(기능구현3)
             score = (score > 50) ? score - 50 : 0;
             if (life > 0) { //생명>0이면 리스폰 함수 호출(기능구현3)
@@ -536,6 +553,7 @@ void check_collisions() {
         if (!coins[i].collected && player_x == coins[i].x && player_y == coins[i].y) {
             coins[i].collected = 1;
             score += 20;
+            beep(); // 코인 먹으면 소리남
         }
     }
 }
