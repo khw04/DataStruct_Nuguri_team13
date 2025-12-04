@@ -74,6 +74,7 @@ void move_enemies();
 void check_collisions();
 void press_any_key(); // (미셸-기능구현4)
 void show_title_screen(); // 한수 추가 (미셸-기능구현4)
+void game_beep(); //함수 추가(김치헌-추가 기능)
 char show_game_over_screen(int score); // 함수 추가 (미셸-기능구현4)
 char show_ending_screen(int score); // 함수 추가 (미셸-기능구현4)
 char wait_for_q_or_r(); // 함수 추가 (미셸-기능구현4-1)
@@ -154,6 +155,7 @@ int main() {
     show_title_screen(); // 타이틀 화면 표시 (미셸-기능구현4)
     load_maps();
     init_stage();
+    printf("\x1b[2J"); 
 
     char c = '\0';
     int game_over = 0;
@@ -417,6 +419,8 @@ void move_player(char input) {
             if (!is_jumping && (floor_tile == '#' || on_ladder)) {
                 is_jumping = 1;
                 velocity_y = -2;
+                game_beep();
+
             }
             break;
     }
@@ -616,6 +620,29 @@ char show_ending_screen(int score) {
     printf("              r - 다시 시작   |   q - 종료                   \n");
     return wait_for_q_or_r();
 }
+
+#ifdef _WIN32
+
+void game_beep(void) { //시스템별 기본 비프음 추가
+    printf("\a");  // 시스템 기본 비프음
+    fflush(stdout);
+}
+
+#elif defined(__APPLE__) && defined(__MACH__)
+void game_beep(void) {
+    fputs("\a", stdout);
+    fflush(stdout);
+}
+
+#else
+
+void game_beep(void) {
+    fputs("\a", stdout);
+    fflush(stdout);
+}
+#endif
+
+
 
 
 // 비동기 키보드 입력 확인
