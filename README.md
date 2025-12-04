@@ -121,7 +121,7 @@ Unix에서는 escape sequence 형태로 입력된다(`\033[A` 등).
 
 ---
 ### 7. ANSI 이스케이프 활성화 (enable_ansi)
-오래된 Windows 콘솔은 기본적으로 ANSI 이스케이프 시퀀스를 지원하지 않는다.
+ Windows 10 이상에서만 ANSI 이스케이프 시퀀스를 지원하고, CMD,PowerShell에서는 기본적으로 비활성화 해놓기 때문에
 
 이를 해결하기 위해 다음 플래그를 활성화하였다.
 
