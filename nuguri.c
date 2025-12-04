@@ -7,7 +7,7 @@
     #ifndef usleep // 윈도우에는 usleep이 없으므로 Sleep으로 대체, 단위 ms
     #define usleep(x) Sleep((x)/1000) 
     #endif
-    #ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING //
+    #ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING 
     #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
     #endif
 #else
@@ -143,6 +143,52 @@ void enable_ansi() { // 윈도우 콘솔에서 ANSI 활성화
 #endif
 }
 
+void sound_coin() {
+#ifdef _WIN32
+    Beep(1200, 100);
+#elif __APPLE__
+    system("afplay /System/Library/Sounds/Glass.aiff >/dev/null 2>&1 &");
+#else
+    printf("\a"); fflush(stdout);
+#endif
+}
+
+void sound_enemy() {
+#ifdef _WIN32
+    Beep(400, 100);
+#elif __APPLE__
+    system("afplay /System/Library/Sounds/Basso.aiff >/dev/null 2>&1 &");
+#else
+    printf("\a"); fflush(stdout);
+#endif
+    
+}
+
+void sound_gameover() {
+#ifdef _WIN32
+    Beep(800, 90);
+    Beep(600, 70);
+    Beep(450, 70);
+    Beep(300, 60);
+#elif __APPLE__
+    system("afplay /System/Library/Sounds/Sosumi.aiff >/dev/null 2>&1 &");
+#else
+    printf("\a"); fflush(stdout);
+#endif
+    
+}
+
+void sound_clear() {
+#ifdef _WIN32
+    Beep(800, 150);
+    Beep(1200, 200);
+#elif __APPLE__
+    system("afplay /System/Library/Sounds/pop.aiff >/dev/null 2>&1 &");
+#else
+    printf("\a"); fflush(stdout);
+#endif
+}
+
 int main() {
 #ifdef _WIN32
     system("chcp 65001 > nul"); // 한글 깨짐 수정
@@ -154,6 +200,7 @@ int main() {
     show_title_screen(); // 타이틀 화면 표시 (미셸-기능구현4)
     load_maps();
     init_stage();
+    printf("\x1b[2J");
 
     char c = '\0';
     int game_over = 0;
@@ -524,6 +571,7 @@ void move_enemies() {
 void check_collisions() {
     for (int i = 0; i < enemy_count; i++) {
         if (player_x == enemies[i].x && player_y == enemies[i].y) {
+            sound_enemy();
             life--; // 닿으면 생명 감소(기능구현3)
             score = (score > 50) ? score - 50 : 0;
             if (life > 0) { //생명>0이면 리스폰 함수 호출(기능구현3)
@@ -536,6 +584,7 @@ void check_collisions() {
         if (!coins[i].collected && player_x == coins[i].x && player_y == coins[i].y) {
             coins[i].collected = 1;
             score += 20;
+            sound_coin();
         }
     }
 }
@@ -580,6 +629,7 @@ void show_title_screen() {
 // 게임 오버 화면 (GAME OVER) (미셸-기능구현4)
 char show_game_over_screen(int score) {
     printf("\033[2J\033[1;1H");
+    sound_gameover();
 
     printf("   ▄▄▄    ▄▄   ▄    ▄ ▄▄▄▄▄▄         ▄▄▄▄  ▄    ▄ ▄▄▄▄▄▄ ▄▄▄▄▄ \n");
     printf(" ▄▀   ▀   ██   ██  ██ █             ▄▀  ▀▄ ▀▄  ▄▀ █      █   ▀█\n");
@@ -599,6 +649,7 @@ char show_game_over_screen(int score) {
 // 클리어 화면 (CLEAR) (미셸-기능구현4)
 char show_ending_screen(int score) {
     printf("\033[2J\033[1;1H");
+    sound_clear();
 
     printf("             ▄▄▄  ▄      ▄▄▄▄▄▄   ▄▄   ▄▄▄▄▄    ▄            \n");
     printf("           ▄▀   ▀ █      █        ██   █   ▀█   █            \n");
