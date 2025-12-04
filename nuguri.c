@@ -61,8 +61,24 @@ int coin_count = 0;
 struct termios orig_termios;
 #endif
 
+// 추가 기능 관련 프로토타입
+void draw_life();
+void enable_ansi();
+void clrscr();
+void hide_cursor();
+void show_cursor();
+void gotoxy(int x, int y);
+char cross_getch();
+void delay(int ms);
 void beep();
-// 함수 선언
+void respawn(); // 리스폰 함수 추가(기능구현3)
+void press_any_key(); // (미셸-기능구현4)
+void show_title_screen(); // 함수 추가 (미셸-기능구현4)
+char show_game_over_screen(int score); // 함수 추가 (미셸-기능구현4)
+char show_ending_screen(int score); // 함수 추가 (미셸-기능구현4)
+char wait_for_q_or_r(); // 함수 추가 (미셸-기능구현4-1)
+
+// 기존 코드 프로토타입
 void disable_raw_mode();
 void enable_raw_mode();
 void load_maps();
@@ -70,14 +86,8 @@ void init_stage();
 void draw_game();
 void update_game(char input);
 void move_player(char input);
-void respawn(); // 리스폰 함수 추가(기능구현3)
 void move_enemies();
 void check_collisions();
-void press_any_key(); // (미셸-기능구현4)
-void show_title_screen(); // 한수 추가 (미셸-기능구현4)
-char show_game_over_screen(int score); // 함수 추가 (미셸-기능구현4)
-char show_ending_screen(int score); // 함수 추가 (미셸-기능구현4)
-char wait_for_q_or_r(); // 함수 추가 (미셸-기능구현4-1)
 int kbhit();
 
 
@@ -156,7 +166,7 @@ int main() {
     show_title_screen(); // 타이틀 화면 표시 (미셸-기능구현4)
     load_maps();
     init_stage();
-    printf("\x1b[2J"); 
+    printf("\x1b[2J"); // 윈도우에선 화면 전체 클리어
 
     char c = '\0';
     int game_over = 0;
